@@ -2336,73 +2336,161 @@ a.source-button {
   }
 }
 
-/* ── 1단계 상황 · 거래소 프로필 ─────────────────────────────── */
-.situation-layout {
+/* ── 1단계 상황판: 왼쪽 입력, 오른쪽 결론 → 근거 약관 ─────────────── */
+.board-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  gap: 16px;
   align-items: start;
 }
 
-.situation-column {
+.board-inputs {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
 }
 
-.situation-panel {
-  padding: 16px;
+.board-block {
+  min-width: 0;
+  padding: 12px 14px 14px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
 }
 
-.situation-panel h2 {
+.board-block h2 {
   margin: 0;
-  font-size: 18px;
-  letter-spacing: -0.025em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  letter-spacing: -0.02em;
 }
 
-.notice-grid {
+.board-block h2 small {
+  color: var(--faint);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.board-step {
+  width: 20px;
+  height: 20px;
+  display: inline-grid;
+  place-items: center;
+  color: var(--action);
+  background: var(--action-soft);
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.restriction-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0 14px;
-  align-items: end;
-}
-
-.notice-grid .text-field {
-  margin-top: 12px;
-}
-
-.notice-wide {
-  grid-column: 1 / -1;
-}
-
-.exchange-group {
-  display: flex;
-  flex-direction: column;
   gap: 6px;
 }
 
-.exchange-group-label,
-.profile-subtitle {
+.restriction-card {
+  position: relative;
+  padding: 8px 10px 9px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.restriction-card:hover {
+  border-color: var(--border-strong);
+}
+
+.restriction-card.is-selected {
+  background: var(--action-soft);
+  border-color: var(--action);
+}
+
+.restriction-card:has(input:focus-visible) {
+  outline: 2px solid var(--action);
+  outline-offset: 2px;
+}
+
+.restriction-card input {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  margin: 0;
+  accent-color: var(--action);
+}
+
+.restriction-card b {
+  font-size: 14px;
+}
+
+.restriction-card small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.exchange-row {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.exchange-group-label {
   color: var(--muted);
   font-size: 12px;
   font-weight: 650;
 }
 
-.exchange-button {
-  min-width: 0;
-  height: 36px;
-  font-size: 14px;
+.exchange-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
-.exchange-button.is-unverified:not(.is-selected) {
+.exchange-chip {
+  height: 32px;
+  padding: 0 12px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.exchange-chip:hover {
+  border-color: var(--action);
+}
+
+.exchange-chip.is-unverified:not(.is-selected) {
+  color: var(--muted);
   border-style: dashed;
+}
+
+.exchange-chip.is-selected {
+  color: #fff;
+  background: var(--action);
+  border-color: var(--action);
+}
+
+.exchange-chip:focus-visible {
+  outline: 2px solid var(--action);
+  outline-offset: 2px;
 }
 
 .profile-legend {
@@ -2428,58 +2516,299 @@ a.source-button {
   border-style: dashed;
 }
 
-.profile-panel {
-  padding-top: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  border-top: 1px solid var(--border);
-}
-
-.profile-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.profile-head b {
-  font-size: 16px;
-}
-
-.profile-fields {
-  margin: 0;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  font-size: 13px;
-}
-
-.profile-fields > div {
+.notice-row {
   display: grid;
-  grid-template-columns: 112px minmax(0, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  align-items: end;
 }
 
-.profile-fields > div + div {
-  border-top: 1px solid var(--border);
+.board-block .select-field > span,
+.board-block .text-field > span {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: 650;
 }
 
-.profile-fields dt {
+.notice-row .select-field select,
+.notice-row .text-field input {
+  height: 38px;
+  padding-left: 10px;
+}
+
+.board-block textarea {
+  min-height: 40px;
   padding: 8px 10px;
+  resize: vertical;
+}
+
+.board-hint {
+  margin: 0;
   color: var(--muted);
-  background: var(--surface-subtle);
   font-size: 12px;
 }
 
-.profile-fields dd {
-  margin: 0;
-  padding: 8px 10px;
+/* 오른쪽: 결론 카드가 먼저, 근거 약관은 한 줄씩.
+   화면 높이에 맞춰 따라오고, 근거 목록만 안에서 스크롤합니다. */
+.board-result {
+  position: sticky;
+  top: 16px;
   min-width: 0;
+  /* 처음 화면에서는 위에 제목(약 100px)이 있어서 그만큼 뺍니다 */
+  max-height: calc(100dvh - 124px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.board-next {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.result-card {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--action-soft);
+  border: 1px solid #bfdbfe;
+  border-radius: var(--radius);
+}
+
+.result-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.result-head h2 {
+  margin: 0;
+  font-size: 17px;
+  letter-spacing: -0.02em;
+}
+
+.result-rows {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.result-rows > div {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 10px;
+  align-items: baseline;
+}
+
+.result-rows dt {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.result-rows dd {
+  margin: 0;
+  min-width: 0;
+  font-size: 13px;
+}
+
+.result-rows .result-main {
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.result-rows small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.result-docs {
+  margin: 0 0 4px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  list-style: none;
+}
+
+.result-docs li {
+  padding: 2px 8px;
+  background: var(--surface);
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.result-notes {
+  margin: 0;
+  padding: 8px 0 0 16px;
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+  border-top: 1px solid #dbeafe;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.evidence-panel {
+  min-height: 0;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.evidence-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.evidence-head h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.evidence-head span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.evidence-rows {
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.evidence-rows > li + li {
+  border-top: 1px solid var(--border);
+}
+
+.evidence-rows summary {
+  padding: 6px 10px;
+  display: grid;
+  grid-template-columns: 136px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  list-style: none;
+  cursor: pointer;
+}
+
+.evidence-rows summary::-webkit-details-marker {
+  display: none;
+}
+
+.evidence-rows summary:hover {
+  background: var(--surface-subtle);
+}
+
+.evidence-rows summary:focus-visible {
+  outline: 2px solid var(--action);
+  outline-offset: -2px;
+}
+
+.evidence-rows summary b {
+  overflow: hidden;
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.evidence-scope {
+  margin-left: 5px;
+  padding: 0 5px;
+  color: var(--muted);
+  background: var(--neutral-soft);
+  border-radius: 4px;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 600;
+}
+
+.evidence-rows summary b::before {
+  content: "▸";
+  margin-right: 5px;
+  color: var(--faint);
+  font-size: 10px;
+}
+
+.evidence-rows details[open] > summary b::before {
+  content: "▾";
+}
+
+.evidence-preview {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.evidence-rows details[open] > summary .evidence-preview {
+  visibility: hidden;
+}
+
+.evidence-state {
+  padding: 1px 7px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.evidence-state.is-verified {
+  color: var(--ok);
+  background: var(--ok-soft);
+}
+
+.evidence-state.is-check {
+  color: var(--muted);
+  border-color: var(--border-strong);
+  border-style: dashed;
+}
+
+.evidence-state.is-caution {
+  color: var(--issue);
+  background: var(--issue-soft);
+}
+
+.evidence-body {
+  padding: 0 10px 10px 156px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 4px;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1.6;
 }
 
+.evidence-body p {
+  margin: 0;
+}
+
+.evidence-body .field-chip {
+  display: inline-block;
+  max-width: 100%;
+  border-radius: 8px;
+  white-space: normal;
+}
+
+/* 상태 칩 (1단계 근거, 4단계 자료 등에서 같이 씀) */
 .field-chip {
   display: inline-flex;
   padding: 1px 8px;
@@ -2501,12 +2830,10 @@ a.source-button {
   border-style: dashed;
 }
 
-/* 프로필 칸의 출처는 길 수 있어서 줄을 바꾸고, 주소가 있으면 링크로 엽니다 */
-.profile-fields .field-chip {
-  display: inline-block;
-  max-width: 100%;
-  border-radius: 8px;
-  white-space: normal;
+.field-chip.is-caution {
+  color: var(--issue);
+  background: var(--issue-soft);
+  border-color: #fecdca;
 }
 
 .field-chip a {
@@ -2515,30 +2842,10 @@ a.source-button {
   text-underline-offset: 2px;
 }
 
-.field-chip.is-caution {
-  color: var(--issue);
-  background: var(--issue-soft);
-  border-color: #fecdca;
-}
-
 .profile-note {
   margin: 0;
   color: var(--muted);
   font-size: 12px;
-}
-
-/* 앞의 몇 칸 뒤에 접어 둔 약관 조항 */
-.profile-more > summary {
-  width: fit-content;
-  padding: 4px 0;
-  color: var(--action);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.profile-more[open] > summary {
-  margin-bottom: 6px;
 }
 
 /* ── 4단계 요청 유형 경고 ──────────────────────────────────── */
@@ -2605,17 +2912,36 @@ a.source-button {
 }
 
 @media (max-width: 1100px) {
-  .situation-layout {
+  .board-layout {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .board-result {
+    position: static;
+    max-height: none;
   }
 }
 
 @media (max-width: 760px) {
-  .notice-grid {
+  .restriction-grid,
+  .notice-row {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .profile-fields > div {
+  .result-rows > div {
     grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+
+  .evidence-rows summary {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .evidence-preview {
+    display: none;
+  }
+
+  .evidence-body {
+    padding-left: 10px;
   }
 }
