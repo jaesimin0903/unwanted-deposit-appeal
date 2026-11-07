@@ -36,6 +36,10 @@ const fieldStatusLabels = {
   caution: "주의",
 } as const;
 
+// 거래소별 칸은 앞의 몇 칸만 바로 보이고, 나머지 약관 조항은 접어 둡니다.
+// 어떤 칸을 앞에 둘지는 src/profiles/README.md의 "칸 순서"를 따릅니다.
+const VISIBLE_PROFILE_FIELDS = 5;
+
 function FieldList({ fields }: { fields: ProfileField[] }) {
   return (
     <dl className="profile-fields">
@@ -193,7 +197,14 @@ export function SituationScreen({ submission, onChange, onNext }: SituationScree
                 {profile.fields.length > 0 ? (
                   <>
                     <span className="profile-subtitle">{profile.name}만의 칸</span>
-                    <FieldList fields={profile.fields} />
+                    <FieldList fields={profile.fields.slice(0, VISIBLE_PROFILE_FIELDS)} />
+                    {profile.fields.length > VISIBLE_PROFILE_FIELDS ? (
+                      // 거래소를 바꾸면 다시 접힌 상태로 시작합니다
+                      <details key={profile.id} className="profile-more">
+                        <summary>약관 조항 {profile.fields.length - VISIBLE_PROFILE_FIELDS}개 더 보기</summary>
+                        <FieldList fields={profile.fields.slice(VISIBLE_PROFILE_FIELDS)} />
+                      </details>
+                    ) : null}
                   </>
                 ) : null}
                 {profile.status !== "verified" ? (

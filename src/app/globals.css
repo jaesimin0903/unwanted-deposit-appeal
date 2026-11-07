@@ -2527,6 +2527,20 @@ a.source-button {
   font-size: 12px;
 }
 
+/* 앞의 몇 칸 뒤에 접어 둔 약관 조항 */
+.profile-more > summary {
+  width: fit-content;
+  padding: 4px 0;
+  color: var(--action);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.profile-more[open] > summary {
+  margin-bottom: 6px;
+}
+
 /* ── 4단계 요청 유형 경고 ──────────────────────────────────── */
 .appeal-warning {
   margin: 0;
