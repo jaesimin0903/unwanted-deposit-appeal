@@ -25,19 +25,23 @@ export function buildReport(input: {
   const profile = getProfile(submission.exchange);
 
   const summary = [
-    `선택한 지갑은 보낸 주소로부터 ${amount(transfer)}를 받았습니다.`,
+    `본인 지갑은 보낸 주소로부터 ${amount(transfer)}를 받았습니다.`,
     facts.priorDirectTransactions === 0
       ? "조회한 기록에서 두 주소 사이의 이전 직접 거래는 확인되지 않았습니다."
       : `두 주소 사이에는 이전 직접 거래가 ${facts.priorDirectTransactions}건 있습니다.`,
-    `같은 보낸 주소는 ${scope.windowLabel} 동안 ${facts.similarAmountCount}개 주소에 비슷한 금액을 보냈습니다.`,
+    `보낸 주소는 같은 기간(${scope.windowLabel})에 상대 지갑 ${facts.senderRecipientCount}곳 중 ${facts.similarAmountCount}곳에 비슷한 금액을 보냈습니다.`,
     facts.returnedToSender
       ? "입금 후 보낸 주소로 다시 보낸 기록이 있습니다."
       : "입금 후 보낸 주소로 다시 보낸 기록은 확인되지 않았습니다.",
+    // 불리한 결과도 요약에서 빼지 않습니다
+    analysis.sanctions.senderMatched
+      ? `보낸 주소는 조회한 제재 목록(${analysis.sanctions.listName}, ${analysis.sanctions.listUpdatedAt} 기준)과 일치합니다.`
+      : `보낸 주소는 조회한 제재 목록(${analysis.sanctions.listName}, ${analysis.sanctions.listUpdatedAt} 기준)에서 일치하지 않습니다.`,
   ].join(" ");
 
   const additionalDocuments = [
     ...(submission.requestText.trim() ? ["거래소에서 받은 소명 요청 원문"] : []),
-    ...(submission.exchange !== "unspecified" ? ["제출 계정 정보가 확인되는 화면"] : []),
+    ...(submission.exchange !== "unspecified" ? ["거래소 앱에서 내 계정(이메일 · 이름)이 보이는 화면 캡처"] : []),
     statement.attachments.length > 0
       ? `사용자가 첨부한 관련 자료 ${statement.attachments.length}개`
       : "관련 자료가 있다면 추가 첨부",

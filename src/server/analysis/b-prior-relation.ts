@@ -22,7 +22,7 @@ export function analyzePriorRelation(between: PagedTransfers, transfer: Transfer
         : `입금 전 두 주소 사이의 직접 거래가 ${count}건 있습니다`,
     description:
       count === 0
-        ? "조회한 기록에서 내 지갑과 보낸 주소가 서로 직접 주고받은 전송은 0건입니다."
+        ? "조회한 기록에서 본인 지갑과 보낸 주소가 서로 직접 주고받은 전송은 0건입니다."
         : "아래 거래는 이번 입금보다 먼저 두 주소 사이에서 오간 전송입니다.",
     sources:
       count === 0

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   analyzeCase,
   createReport,
@@ -80,6 +80,12 @@ export function CaseWorkspace() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>();
 
+  // 단계를 넘기면 화면을 맨 위로 올립니다. 이전 단계의 스크롤 위치가 남으면 새 단계의 첫 질문이 가려집니다.
+  const workspaceRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    workspaceRef.current?.scrollTo({ top: 0 });
+  }, [step]);
+
   const currentIndex = steps.findIndex((item) => item.id === step);
   const selectedTransfer = useMemo(
     () => transfers.find((transfer) => transfer.id === selectedTransferId),
@@ -87,16 +93,17 @@ export function CaseWorkspace() {
   );
   const isDemo = (analysis?.scope.provider ?? transfers[0]?.sourceProvider) === "demo";
 
-  const searchTransfers = async () => {
+  // address를 넘기면 그 주소로 바로 조회합니다 (예시 주소 버튼은 넣고 바로 보여줍니다)
+  const searchTransfers = async (address: string = walletAddress) => {
     setError(undefined);
-    if (!isAddress(walletAddress)) {
+    if (!isAddress(address)) {
       setError("42자리 Ethereum 주소를 입력해 주세요.");
       return;
     }
 
     setLoading(true);
     try {
-      const result = await getInboundTransfers(walletAddress);
+      const result = await getInboundTransfers(address);
       setTransfers(result.transfers);
       setSelectedTransferId(undefined);
     } catch (caught) {
@@ -259,7 +266,7 @@ export function CaseWorkspace() {
         {isDemo ? <p className="demo-badge">데모 데이터 · 주소와 거래는 가짜입니다</p> : null}
       </aside>
 
-      <main className="workspace">
+      <main className="workspace" ref={workspaceRef}>
         {step === "situation" ? (
           <SituationScreen
             submission={submission}
@@ -278,9 +285,12 @@ export function CaseWorkspace() {
             transfers={transfers}
             selectedTransferId={selectedTransferId}
             onAddressChange={setWalletAddress}
-            onUseExample={() => setWalletAddress(EXAMPLE_WALLET)}
+            onUseExample={() => {
+              setWalletAddress(EXAMPLE_WALLET);
+              void searchTransfers(EXAMPLE_WALLET);
+            }}
             onImportMetaMask={importFromMetaMask}
-            onSearch={searchTransfers}
+            onSearch={() => searchTransfers()}
             onSelectTransfer={setSelectedTransferId}
             exchange={exchange}
             apiKey={apiKey}

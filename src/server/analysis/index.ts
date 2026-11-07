@@ -68,7 +68,10 @@ export async function runCaseAnalysis(input: {
     title: sanctions.senderMatched
       ? "보낸 주소가 조회한 제재 목록과 일치합니다"
       : "보낸 주소는 조회한 제재 목록에서 일치하지 않습니다",
-    description: `${sanctions.listName}(${sanctions.listUpdatedAt} 기준)과 직접 비교했습니다. 목록에 없다는 것이 안전한 주소라는 뜻은 아닙니다.`,
+    // 일치하면 "제재 목록에 있는 것은 보낸 주소"라는 점을, 일치하지 않으면 "목록 밖이라고 안전하다는 뜻은 아니다"를 덧붙입니다
+    description: sanctions.senderMatched
+      ? `${sanctions.listName}(${sanctions.listUpdatedAt} 기준)과 직접 비교했습니다. 목록과 일치한 것은 보낸 주소이며, 본인 지갑 주소는 비교 대상이 아닙니다.`
+      : `${sanctions.listName}(${sanctions.listUpdatedAt} 기준)과 직접 비교했습니다. 목록에 없다는 것이 안전한 주소라는 뜻은 아닙니다.`,
     sources: [addressSource(transfer.from, "보낸 주소", EXPLORER_BASE)],
   };
 

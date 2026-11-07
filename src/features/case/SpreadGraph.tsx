@@ -20,7 +20,7 @@ export function SpreadGraph({ analysis }: { analysis: CaseAnalysis }) {
       <svg
         viewBox={`0 0 ${SPREAD_VIEW.width} ${SPREAD_VIEW.height}`}
         role="img"
-        aria-label={`보낸 주소가 ${scope.windowLabel} 동안 받은 주소 ${total}곳에 보냈고, 그중 ${similar}곳이 비슷한 금액입니다. 내 지갑은 받은 주소 중 하나입니다.`}
+        aria-label={`보낸 주소가 ${scope.windowLabel} 동안 ${total}곳에 보냈고, 그중 ${similar}곳이 비슷한 금액입니다. 내 지갑도 그중 하나입니다.`}
       >
         <g>
           {others.map((dot, index) => (

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   DOCUMENT_LABELS,
   GROUPS,
@@ -10,6 +11,8 @@ import {
   getSubmissionRoute,
   todayInSeoul,
 } from "@/profiles";
+import { parseNotice } from "@/features/case/notice";
+import { daysLeftLabel } from "@/features/case/utils";
 import type { ExchangeId, ProfileField, RestrictionScope, RestrictionType, SubmissionDetails } from "@/types/case";
 
 // 1단계: 어떤 제한을 받았고, 어느 거래소에 내는지
@@ -90,7 +93,64 @@ function EvidenceRows({ rows }: { rows: EvidenceRow[] }) {
 export function SituationScreen({ submission, onChange, onNext }: SituationScreenProps) {
   const profile = getProfile(submission.exchange);
   const group = profile ? GROUPS[profile.group] : null;
-  const route = getSubmissionRoute(submission, todayInSeoul());
+  const today = todayInSeoul();
+  const route = getSubmissionRoute(submission, today);
+  const daysLeft = daysLeftLabel(route.deadline.date, today);
+
+  // 붙여넣은 통지에서 찾은 값 중 지금 입력과 다른 것만 제안합니다 (적용은 사용자가 누를 때만)
+  const hints = parseNotice(submission.requestText, today);
+  const suggestion: Partial<SubmissionDetails> = {};
+  if (hints.restrictionType && hints.restrictionType !== submission.restrictionType) suggestion.restrictionType = hints.restrictionType;
+  if (hints.scope && hints.scope !== submission.scope) suggestion.scope = hints.scope;
+  if (hints.exchange && hints.exchange !== submission.exchange) suggestion.exchange = hints.exchange;
+  // 통지의 "…까지" 날짜는 거래소 내부 심사의 자료 제출 기한일 때만 기한 칸에 넣습니다
+  const typeAfterApply = suggestion.restrictionType ?? submission.restrictionType;
+  if (hints.deadline && typeAfterApply === "internal" && hints.deadline !== submission.baseDate) suggestion.baseDate = hints.deadline;
+  const hasSuggestion = Object.keys(suggestion).length > 0;
+  // 이미 고른 값과 통지가 다른지 (비어 있는 칸만 채우는 경우와 말을 다르게 합니다)
+  const conflicts =
+    (suggestion.restrictionType !== undefined && submission.restrictionType !== "unknown") ||
+    (suggestion.scope !== undefined && submission.scope !== "unknown") ||
+    (suggestion.exchange !== undefined && submission.exchange !== "unspecified") ||
+    (suggestion.baseDate !== undefined && submission.baseDate !== "");
+  const applySuggestion = () => onChange({ ...submission, ...suggestion });
+
+  // 통지를 붙여넣으면 아직 고르지 않은 칸만 바로 채웁니다. 사용자가 이미 고른 값은 덮어쓰지 않고, 되돌릴 수 있게 남겨 둡니다.
+  const [autoFill, setAutoFill] = useState<{ before: Partial<SubmissionDetails>; labels: string[] } | null>(null);
+  const changeNotice = (text: string) => {
+    const found = parseNotice(text, today);
+    const next: SubmissionDetails = { ...submission, requestText: text };
+    const before: Partial<SubmissionDetails> = {};
+    const labels: string[] = [];
+    if (found.exchange && submission.exchange === "unspecified") {
+      before.exchange = submission.exchange;
+      next.exchange = found.exchange;
+      labels.push(PROFILES[found.exchange].name);
+    }
+    if (found.scope && submission.scope === "unknown") {
+      before.scope = submission.scope;
+      next.scope = found.scope;
+      labels.push(SCOPE_LABELS[found.scope]);
+    }
+    if (found.restrictionType && submission.restrictionType === "unknown") {
+      before.restrictionType = submission.restrictionType;
+      next.restrictionType = found.restrictionType;
+      labels.push(RESTRICTION_LABELS[found.restrictionType]);
+    }
+    if (found.deadline && next.restrictionType === "internal" && !submission.baseDate) {
+      before.baseDate = submission.baseDate;
+      next.baseDate = found.deadline;
+      labels.push(`기한 ${found.deadline}`);
+    }
+    if (labels.length > 0) {
+      setAutoFill({ before: { ...before, ...autoFill?.before }, labels: [...(autoFill?.labels ?? []), ...labels] });
+    }
+    onChange(next);
+  };
+  const undoAutoFill = () => {
+    if (autoFill) onChange({ ...submission, ...autoFill.before });
+    setAutoFill(null);
+  };
   const baseDateLabel = baseDateLabels[submission.restrictionType];
   const verified = profile?.status === "verified";
 
@@ -110,6 +170,8 @@ export function SituationScreen({ submission, onChange, onNext }: SituationScree
         ]
       : [];
   const confirmed = evidence.filter((row) => row.status === "verified").length;
+  // 공개 자료에서 찾지 못한 칸 (사용자가 할 일이 아니라 거래소가 공개하지 않은 것)
+  const missingLabels = evidence.filter((row) => row.status !== "verified").map((row) => row.label);
 
   const selectExchange = (exchange: ExchangeId) => onChange({ ...submission, exchange });
 
@@ -122,9 +184,45 @@ export function SituationScreen({ submission, onChange, onNext }: SituationScree
 
       <div className="board-layout">
         <div className="board-inputs">
+          <section className="board-block" aria-labelledby="paste-title">
+            <h2 id="paste-title">
+              <span className="board-step">1</span>받은 통지 붙여넣기 <small>선택</small>
+            </h2>
+            <label className="text-field compact-field">
+              <span className="visually-hidden">거래소에서 받은 문구</span>
+              <textarea
+                rows={2}
+                placeholder="알림톡 · 문자 · 메일로 받은 문구를 붙여넣으면 아래 칸을 채워 드려요."
+                value={submission.requestText}
+                onChange={(event) => changeNotice(event.target.value)}
+              />
+            </label>
+            {autoFill ? (
+              <div className="notice-hints" role="status">
+                <span>
+                  통지에서 채운 칸: <b>{autoFill.labels.join(" · ")}</b>
+                </span>
+                <button type="button" className="text-button" onClick={undoAutoFill}>
+                  되돌리기
+                </button>
+              </div>
+            ) : null}
+            {hasSuggestion ? (
+              // 이미 고른 값이 통지와 다를 때만 묻습니다
+              <div className={conflicts ? "notice-hints is-conflict" : "notice-hints"} role="status">
+                <span>
+                  {conflicts ? "통지 내용과 다른 칸이 있어요" : "통지에서 찾은 것"}: <b>{hints.found.join(" · ")}</b>
+                </span>
+                <button type="button" className="primary-button notice-apply" onClick={applySuggestion}>
+                  {conflicts ? "통지대로 바꾸기" : "아래 칸에 채우기"}
+                </button>
+              </div>
+            ) : null}
+          </section>
+
           <section className="board-block" aria-labelledby="restriction-title">
             <h2 id="restriction-title">
-              <span className="board-step">1</span>어떤 제한을 받았나요?
+              <span className="board-step">2</span>어떤 제한을 받았나요?
             </h2>
             <div className="restriction-grid" role="radiogroup" aria-labelledby="restriction-title">
               {restrictionOrder.map((type) => (
@@ -145,7 +243,7 @@ export function SituationScreen({ submission, onChange, onNext }: SituationScree
 
           <section className="board-block" aria-labelledby="exchange-title">
             <h2 id="exchange-title">
-              <span className="board-step">2</span>어느 거래소에 내나요?
+              <span className="board-step">3</span>어느 거래소에 내나요?
             </h2>
             {(["kr", "intl"] as const).map((groupId) => (
               <div key={groupId} className="exchange-row">
@@ -174,14 +272,11 @@ export function SituationScreen({ submission, onChange, onNext }: SituationScree
                 </div>
               </div>
             ))}
-            <p className="profile-legend">
-              <span className="legend-solid" />공개 자료 확인 <span className="legend-dashed" />리서치 중 · 공통 기준
-            </p>
           </section>
 
           <section className="board-block" aria-labelledby="notice-title">
             <h2 id="notice-title">
-              <span className="board-step">3</span>통지 내용 <small>모르면 비워 두세요</small>
+              <span className="board-step">4</span>통지 내용 <small>모르면 비워 두세요</small>
             </h2>
             <div className="notice-row">
               <label className="select-field">
@@ -217,18 +312,9 @@ export function SituationScreen({ submission, onChange, onNext }: SituationScree
             </div>
             {baseDateLabel ? (
               <p id="base-date-hint" className="board-hint">
-                {baseDateLabel}: {baseDateHints[submission.restrictionType]}. 넣으면 기한을 계산합니다.
+                {baseDateLabel}: {baseDateHints[submission.restrictionType]}. 넣으면 남은 날을 계산해요. 통지받은 날은 소명서에 통지일로 적혀요.
               </p>
             ) : null}
-            <label className="text-field compact-field">
-              <span>거래소에서 받은 문구</span>
-              <textarea
-                rows={1}
-                placeholder="통지나 요청 문구가 있다면 붙여넣으세요."
-                value={submission.requestText}
-                onChange={(event) => onChange({ ...submission, requestText: event.target.value })}
-              />
-            </label>
           </section>
         </div>
 
@@ -249,7 +335,10 @@ export function SituationScreen({ submission, onChange, onNext }: SituationScree
               </div>
               <div>
                 <dt>기한</dt>
-                <dd className="result-main route-deadline">{route.deadline.text}</dd>
+                <dd className="result-main route-deadline">
+                  {route.deadline.text}
+                  {daysLeft ? <span className="days-left">{daysLeft}</span> : null}
+                </dd>
               </div>
               {route.reviewPeriod ? (
                 <div>
@@ -277,6 +366,12 @@ export function SituationScreen({ submission, onChange, onNext }: SituationScree
                 </dd>
               </div>
             </dl>
+            {hints.asksSourceOfFunds ? (
+              <p className="result-callout">
+                통지가 <b>자금 출처</b> 자료를 요구해요. 이 도구는 모르는 입금에 대한 설명서를 만들어요. 내 자산이 어디서 왔는지 보여주는 자료(원화 입금 · 매수
+                내역, 급여 · 이체 내역 등)는 따로 준비해 같이 내야 해요.
+              </p>
+            ) : null}
             {route.notes.length > 0 ? (
               <ul className="result-notes">
                 {route.notes.map((note) => (
@@ -291,7 +386,8 @@ export function SituationScreen({ submission, onChange, onNext }: SituationScree
               <div className="evidence-head">
                 <h3 id="evidence-title">근거 약관 · 공개 자료</h3>
                 <span>
-                  {evidence.length}칸 중 {confirmed}칸 확인
+                  공개 자료로 {confirmed}개 확인
+                  {missingLabels.length > 0 ? ` · 공개 자료에 없음: ${missingLabels.join(", ")}` : ""}
                 </span>
               </div>
               <EvidenceRows rows={evidence} />

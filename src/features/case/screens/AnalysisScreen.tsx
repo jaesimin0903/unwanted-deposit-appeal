@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { AddressText } from "@/features/case/AddressText";
+import { SCOPE } from "@/server/constants";
 import { ANALYSIS_CHECKS, analysisQuestions, analysisSummary, analysisUnknowns } from "@/features/case/analysis-view";
 import { SourceLinks } from "@/features/case/SourceLinks";
 import { SpreadGraph } from "@/features/case/SpreadGraph";
@@ -88,13 +90,14 @@ export function AnalysisScreen({ analysis, loading, onBack, onNext }: AnalysisSc
       <header className="onchain-head">
         <div>
           <h1 id="analysis-title">온체인 조사</h1>
+          <p className="onchain-lead">블록체인에 남은 기록으로 이 입금을 확인했어요. 아래 결과는 고르거나 고칠 수 없고, 소명서에 그대로 들어가요.</p>
           <p className="onchain-meta">
             <b>{transfer.displayValue} {transfer.asset}</b> · {formatKoreanDateTime(transfer.timestamp)} · 보낸 주소{" "}
             <code>{shortAddress(transfer.from, 6, 4)}</code>
           </p>
         </div>
         <a className="source-button" href={transfer.explorerUrl} target="_blank" rel="noreferrer">
-          거래 원문 보기 ↗
+          블록체인 기록 보기 ↗
         </a>
       </header>
 
@@ -104,10 +107,13 @@ export function AnalysisScreen({ analysis, loading, onBack, onNext }: AnalysisSc
         <SpreadGraph analysis={analysis} />
         <div className="question-grid">
           {questions.map((question) => (
-            <article key={question.id} className="question-card">
+            <article key={question.id} className={question.caution ? "question-card is-caution" : "question-card"}>
               <h2>{question.question}</h2>
               <p className="question-answer">{question.answer}</p>
-              <p className="question-detail">{question.detail}</p>
+              <p className="question-detail">
+                <AddressText text={question.detail} />
+              </p>
+              <p className="question-meaning">{question.meaning}</p>
               <div className="question-foot">
                 <span className={`category-chip is-${question.category}`}>{categoryLabels[question.category]}</span>
                 <span className="question-sources">
@@ -143,12 +149,14 @@ export function AnalysisScreen({ analysis, loading, onBack, onNext }: AnalysisSc
 
       <div className="onchain-details" id="analysis-details" hidden={!showDetails}>
         <dl className="scope-box" aria-label="조사 범위">
-          <div><dt>조사 기간</dt><dd>{formatKoreanDateTime(scope.windowStart)} ~ {formatKoreanDateTime(scope.windowEnd)}</dd></div>
+          <div><dt>비슷한 금액</dt><dd>{scope.windowLabel} ({formatKoreanDateTime(scope.windowStart)} ~ {formatKoreanDateTime(scope.windowEnd)})</dd></div>
+          <div><dt>이전 거래</dt><dd>입금 전 기록 전체 (최대 {scope.maxTransfers.toLocaleString("en-US")}건)</dd></div>
+          <div><dt>입금 후 전송</dt><dd>입금 후 {SCOPE.afterDepositDays}일</dd></div>
           <div>
             <dt>조회 건수</dt>
             <dd>
-              {scope.fetchedTransfers.toLocaleString("en-US")}건 (상한 {scope.maxTransfers.toLocaleString("en-US")}건)
-              {scope.complete ? "" : " · 상한에 걸려 일부만 조회"}
+              {scope.fetchedTransfers.toLocaleString("en-US")}건 (최대 {scope.maxTransfers.toLocaleString("en-US")}건까지 조회)
+              {scope.complete ? "" : " · 최대치에 걸려 일부만 조회"}
             </dd>
           </div>
           <div><dt>제재 목록</dt><dd>{sanctions.listName} ({sanctions.listUpdatedAt} 기준) · {sanctions.senderMatched ? "일치" : "일치하지 않음"}</dd></div>
@@ -158,8 +166,12 @@ export function AnalysisScreen({ analysis, loading, onBack, onNext }: AnalysisSc
           {analysis.evidence.map((item) => (
             <article key={item.id} className={`evidence-item evidence-${item.category}`}>
               <span>{categoryLabels[item.category]}</span>
-              <h3>{item.title}</h3>
-              <p>{item.description}</p>
+              <h3>
+                <AddressText text={item.title} />
+              </h3>
+              <p>
+                <AddressText text={item.description} />
+              </p>
               <SourceLinks sources={item.sources} />
             </article>
           ))}
@@ -168,7 +180,7 @@ export function AnalysisScreen({ analysis, loading, onBack, onNext }: AnalysisSc
 
       <div className="screen-actions">
         <button className="secondary-button" type="button" onClick={onBack}>이전</button>
-        <button className="primary-button" type="button" onClick={onNext}>내 설명</button>
+        <button className="primary-button" type="button" onClick={onNext}>다음 · 내 설명</button>
       </div>
     </section>
   );

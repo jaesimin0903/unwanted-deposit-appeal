@@ -9,7 +9,7 @@ export function describeTransaction(transfer: Transfer): EvidenceItem {
     id: "A-transfer",
     category: "verified",
     analysis: "A",
-    title: `선택한 지갑이 ${amount(transfer)}를 받았습니다`,
+    title: `본인 지갑이 ${amount(transfer)}를 받았습니다`,
     description: `${kst(transfer.timestamp)}, 블록 ${transfer.blockNumber.toLocaleString("en-US")}에서 ${short(transfer.from, 8, 6)} 주소가 보낸 입금입니다.`,
     sources: [txSource(transfer)],
   };

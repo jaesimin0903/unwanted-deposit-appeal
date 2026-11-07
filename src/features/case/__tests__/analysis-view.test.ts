@@ -102,7 +102,7 @@ describe("금액 표시", () => {
 describe("요약 문장", () => {
   it("분모를 같이 쓰고 판정하지 않음", () => {
     const text = analysisSummary(makeAnalysis());
-    assert.match(text, /받은 주소 40곳 중 34곳에 비슷한 금액을 보냈습니다/);
+    assert.match(text, /상대 지갑 40곳 중 34곳에 비슷한 금액을 보냈습니다/);
     assert.match(text, /입금 전 직접 거래는 확인되지 않았습니다/);
     for (const word of BANNED) assert.ok(!text.includes(word), word);
   });
@@ -122,17 +122,20 @@ describe("질문 4개", () => {
   it("B, C, D, S 순서로 답을 만듦", () => {
     const questions = analysisQuestions(makeAnalysis());
     assert.deepEqual(questions.map((q) => q.code), ["B", "C", "D", "S"]);
-    assert.deepEqual(questions.map((q) => q.answer), ["0건", "34곳", "확인되지 않음", "일치"]);
+    assert.deepEqual(questions.map((q) => q.answer), ["0건", "34곳", "없음", "있음"]);
     assert.equal(questions[1].category, "derived");
-    assert.match(questions[1].detail, /받은 주소 40곳 중 34곳이 0.0009~0.0011 ETH/);
-    assert.equal(questions[2].detail, "입금 10분 뒤 다른 주소로 0.3 ETH를 보냈습니다");
+    assert.match(questions[1].detail, /상대 지갑 40곳 중 34곳이 0.0009~0.0011 ETH/);
+    assert.equal(questions[2].detail, "입금 후 7일 동안 조회");
+    assert.match(questions[2].meaning, /다른 전송: 입금 10분 뒤 다른 주소로 0.3 ETH를 보냈어요/);
     for (const q of questions) assert.ok(q.sources.length > 0, `${q.id}에 원본 링크가 있어야 함`);
   });
 
   it("입금 후 나간 전송이 없으면 조회 기간을 씀", () => {
     const analysis = makeAnalysis();
     analysis.evidence = analysis.evidence.filter((item) => item.id !== "D-first-outgoing");
-    assert.equal(analysisQuestions(analysis)[2].detail, "입금 후 7일 동안의 전송을 확인했습니다.");
+    const after = analysisQuestions(analysis)[2];
+    assert.equal(after.detail, "입금 후 7일 동안 조회");
+    assert.equal(after.meaning, "보낸 주소로 다시 보낸 기록은 없어요.");
   });
 
   it("확인할 수 없는 것만 따로 모음", () => {
