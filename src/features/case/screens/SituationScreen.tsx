@@ -46,7 +46,15 @@ function FieldList({ fields }: { fields: ProfileField[] }) {
             <span>{field.value}</span>
             <span className={`field-chip is-${field.status}`}>
               {fieldStatusLabels[field.status]}
-              {field.source ? ` · ${field.source.label}` : ""}
+              {field.source ? " · " : null}
+              {/* 출처에 주소가 있으면 원문을 바로 열어 볼 수 있게 합니다 */}
+              {field.source?.url ? (
+                <a href={field.source.url} target="_blank" rel="noreferrer">
+                  {field.source.label} ↗
+                </a>
+              ) : (
+                field.source?.label
+              )}
             </span>
           </dd>
         </div>

@@ -2501,6 +2501,20 @@ a.source-button {
   border-style: dashed;
 }
 
+/* 프로필 칸의 출처는 길 수 있어서 줄을 바꾸고, 주소가 있으면 링크로 엽니다 */
+.profile-fields .field-chip {
+  display: inline-block;
+  max-width: 100%;
+  border-radius: 8px;
+  white-space: normal;
+}
+
+.field-chip a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .field-chip.is-caution {
   color: var(--issue);
   background: var(--issue-soft);
