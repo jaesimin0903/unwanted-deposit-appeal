@@ -170,8 +170,8 @@ export function SituationScreen({ submission, onChange, onNext }: SituationScree
         ]
       : [];
   const confirmed = evidence.filter((row) => row.status === "verified").length;
-  // 공개 자료에서 찾지 못한 칸 (사용자가 할 일이 아니라 거래소가 공개하지 않은 것)
-  const missingLabels = evidence.filter((row) => row.status !== "verified").map((row) => row.label);
+  // 공개 자료에서 찾지 못한 칸 (사용자가 할 일이 아니라 거래소가 공개하지 않은 것). 주의 칸은 출처가 있어서 넣지 않습니다.
+  const missingLabels = evidence.filter((row) => row.status === "check").map((row) => row.label);
 
   const selectExchange = (exchange: ExchangeId) => onChange({ ...submission, exchange });
 
