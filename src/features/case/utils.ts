@@ -57,3 +57,12 @@ export function daysLeftLabel(date: string | null, today: string): string {
   if (days === 0) return "오늘까지";
   return `${-days}일 지남`;
 }
+
+// 받침에 따라 조사를 붙입니다: withJosa("빗썸", "이", "가") → "빗썸이", withJosa("업비트", "이", "가") → "업비트가"
+// 영문 이름은 끝소리가 ㄴ · ㄹ · ㅁ으로 읽히면 받침으로 봅니다 (Kraken → "Kraken이", Coinbase → "Coinbase가").
+export function withJosa(word: string, afterBatchim: string, afterVowel: string) {
+  const last = word.trim().slice(-1);
+  const code = last.charCodeAt(0);
+  const batchim = code >= 0xac00 && code <= 0xd7a3 ? (code - 0xac00) % 28 !== 0 : /[lmn]/i.test(last);
+  return `${word}${batchim ? afterBatchim : afterVowel}`;
+}

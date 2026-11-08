@@ -1,4 +1,5 @@
 import { AddressText } from "@/features/case/AddressText";
+import { ExchangeLogo } from "@/features/case/ExchangeLogo";
 import { formatKoreanDate, shortAddress } from "@/features/case/utils";
 import type { ExchangeDeposit, ExchangeSource, Transfer } from "@/types/case";
 
@@ -16,16 +17,14 @@ interface TransactionScreenProps {
   onImportMetaMask: () => void;
   onSearch: () => void;
   onSelectTransfer: (id: string) => void;
-  // 거래소 입금 목록에서 찾기
-  exchange: ExchangeSource;
-  apiKey: string;
-  apiSecret: string;
+  // 거래소 입금 목록에서 찾기. 거래소는 1단계에서 고른 것을 씁니다 (여기서 다시 고르지 않음).
+  // 키를 넣는 과정은 보여 주지 않고, 그 거래소 계정이 이미 연결된 화면으로 보여 줍니다.
+  depositExchange: ExchangeSource | null; // 1단계 거래소가 입금 목록을 불러올 수 있는 곳이면 그 거래소
+  exchangeName: string | null; // 1단계에서 고른 거래소 이름 (고르지 않았으면 null)
+  onChangeExchange: () => void; // 1단계로 돌아가 거래소 바꾸기
   deposits: ExchangeDeposit[];
   selectedDepositId?: string;
-  onExchangeChange: (exchange: ExchangeSource) => void;
-  onApiKeyChange: (value: string) => void;
-  onApiSecretChange: (value: string) => void;
-  onLoadDeposits: () => void;
+  onReloadDeposits: () => void;
   onSelectDeposit: (id: string) => void;
   // 공통
   loading: boolean;
@@ -34,13 +33,27 @@ interface TransactionScreenProps {
   onNext: () => void;
 }
 
-const exchangeOptions: Array<{ id: ExchangeSource; label: string; note: string }> = [
-  { id: "upbit", label: "업비트", note: "키 발급 때 허용 IP 등록이 필요합니다. '입금조회' 권한만 켜세요." },
-  { id: "binance", label: "바이낸스", note: "읽기 전용 키만 쓰세요. 한 번에 90일까지 조회됩니다." },
-];
+// 거래소가 주는 입금 상태 값을 읽을 수 있는 말로 (업비트 · 바이낸스 상태 이름). 모르는 값은 그대로 둡니다.
+const DEPOSIT_STATES: Record<string, string> = {
+  ACCEPTED: "입금 완료",
+  PROCESSING: "처리 중",
+  CANCELLED: "취소",
+  REJECTED: "거절",
+  TRAVEL_RULE_SUSPECTED: "확인 대기",
+  REFUNDING: "반환 중",
+  REFUNDED: "반환됨",
+};
+const depositStateLabel = (state: string) => DEPOSIT_STATES[state.toUpperCase()] ?? state;
 
 export function TransactionScreen(props: TransactionScreenProps) {
-  const { source, onSourceChange, loading, error, canAnalyze, onNext } = props;
+  const { source, onSourceChange, depositExchange, exchangeName, loading, error, canAnalyze, onNext } = props;
+  const walletTab = { id: "wallet" as const, label: "지갑 주소로 찾기" };
+  const exchangeTab = {
+    id: "exchange" as const,
+    label: depositExchange ? `${exchangeName} 입금 목록에서 찾기` : "거래소 입금 목록에서 찾기",
+  };
+  // 연결된 거래소가 있으면 그 입금 목록이 첫 번째 방법입니다
+  const tabs = depositExchange ? [exchangeTab, walletTab] : [walletTab, exchangeTab];
 
   return (
     <section className="screen-section transaction-screen" aria-labelledby="transaction-title">
@@ -50,24 +63,18 @@ export function TransactionScreen(props: TransactionScreenProps) {
       </div>
 
       <div className="segmented-options source-tabs" role="tablist" aria-label="입금을 찾는 방법">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={source === "wallet"}
-          className={source === "wallet" ? "segment-button is-selected" : "segment-button"}
-          onClick={() => onSourceChange("wallet")}
-        >
-          지갑 주소로 찾기
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={source === "exchange"}
-          className={source === "exchange" ? "segment-button is-selected" : "segment-button"}
-          onClick={() => onSourceChange("exchange")}
-        >
-          거래소 입금 목록에서 찾기
-        </button>
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={source === tab.id}
+            className={source === tab.id ? "segment-button is-selected" : "segment-button"}
+            onClick={() => onSourceChange(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {source === "wallet" ? <WalletIntake {...props} /> : <ExchangeIntake {...props} />}
@@ -128,7 +135,7 @@ function WalletIntake({
         <div className="panel-heading">
           <div>
             <h2>받은 거래</h2>
-            <p>문제가 된 입금 한 건을 고르세요.</p>
+            <p>모르는 입금(문제가 된 입금) 한 건을 고르세요. 고른 입금의 블록체인 기록을 조사해요.</p>
           </div>
           <span>{transfers.length}건</span>
         </div>
@@ -173,87 +180,107 @@ function WalletIntake({
 }
 
 function ExchangeIntake({
-  exchange,
-  apiKey,
-  apiSecret,
+  depositExchange,
+  exchangeName,
+  onChangeExchange,
+  onSourceChange,
   deposits,
   selectedDepositId,
-  onExchangeChange,
-  onApiKeyChange,
-  onApiSecretChange,
-  onLoadDeposits,
+  onReloadDeposits,
   onSelectDeposit,
   loading,
 }: TransactionScreenProps) {
-  const current = exchangeOptions.find((option) => option.id === exchange);
+  // 1단계 거래소가 입금 목록을 불러올 수 없는 곳이면, 주소로 찾는 길을 안내합니다
+  if (!depositExchange) {
+    return (
+      <div className="exchange-unsupported">
+        {exchangeName ? (
+          <p>
+            <b>{exchangeName} 계정은 아직 연결이 안 돼요</b> (업비트 · 바이낸스만 돼요). {exchangeName} 앱의 입금 주소를 넣으면 같은 입금을 찾을 수
+            있어요.
+          </p>
+        ) : (
+          <p>
+            <b>1단계에서 거래소를 고르지 않았어요.</b> 업비트나 바이낸스를 고르면 그 계정의 입금 목록을 바로 볼 수 있어요. 다른 거래소라면 거래소 앱의
+            입금 주소를 넣어 찾으세요.
+          </p>
+        )}
+        <div className="exchange-unsupported-actions">
+          <button type="button" className="secondary-button" onClick={() => onSourceChange("wallet")}>
+            지갑 주소로 찾기
+          </button>
+          <button type="button" className="text-button" onClick={onChangeExchange}>
+            1단계에서 거래소 {exchangeName ? "바꾸기" : "고르기"}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
-      <div className="exchange-form">
-        <label className="select-field">
-          <span>거래소</span>
-          <select value={exchange} onChange={(event) => onExchangeChange(event.target.value as ExchangeSource)}>
-            {exchangeOptions.map((option) => (
-              <option key={option.id} value={option.id}>{option.label}</option>
-            ))}
-          </select>
-        </label>
-        <label className="text-field compact-field">
-          <span>API 키</span>
-          <input value={apiKey} onChange={(event) => onApiKeyChange(event.target.value)} autoComplete="off" spellCheck={false} />
-        </label>
-        <label className="text-field compact-field">
-          <span>시크릿</span>
-          <input
-            type="password"
-            value={apiSecret}
-            onChange={(event) => onApiSecretChange(event.target.value)}
-            autoComplete="off"
-          />
-        </label>
-        <button type="button" className="secondary-button" onClick={onLoadDeposits} disabled={loading}>
-          {loading ? "불러오는 중" : "입금 목록 불러오기"}
+      <div className="exchange-connected">
+        <ExchangeLogo id={depositExchange} size={36} className="exchange-mark" />
+        <div className="exchange-connected-main">
+          <p>
+            <b>{exchangeName} 계정</b>
+            <span className="connected-badge">연결됨</span>
+          </p>
+          <small>입금 내역만 읽어요. 주문이나 출금은 하지 않아요.</small>
+        </div>
+        <button type="button" className="text-button" onClick={onChangeExchange}>
+          1단계에서 거래소 바꾸기
         </button>
-        <p className="key-note">
-          {current?.note} 키는 저장하지 않고, 불러온 뒤 시크릿은 화면에서도 지웁니다. 데모 모드에서는 키 없이 예시 목록이 나옵니다.
-        </p>
       </div>
 
       <div className="transaction-panel">
         <div className="panel-heading">
           <div>
-            <h2>거래소 입금 목록</h2>
-            <p>문제가 된 입금 한 건을 고르면 거래 해시로 블록체인 기록을 찾습니다.</p>
+            <h2>{exchangeName} 입금 목록</h2>
+            <p>모르는 입금(문제가 된 입금) 한 건을 고르세요. 고른 입금의 블록체인 기록을 조사해요.</p>
           </div>
           <span>{deposits.length}건</span>
         </div>
-        <div className="transaction-list">
-          {deposits.length === 0 ? (
-            <div className="transaction-empty">거래소를 고르고 입금 목록을 불러오세요.</div>
-          ) : (
-            deposits.map((deposit) => {
-              const selected = selectedDepositId === deposit.id;
-              return (
-                <button
-                  type="button"
-                  className={selected ? "transaction-row is-selected" : "transaction-row"}
-                  key={deposit.id}
-                  onClick={() => onSelectDeposit(deposit.id)}
-                >
-                  <span className="radio-mark" aria-hidden="true" />
-                  <span className="transaction-main">
-                    <b>{deposit.amount} {deposit.asset}</b>
-                    <small>{deposit.txHash ? `거래 해시 ${shortAddress(deposit.txHash, 10, 6)}` : "거래 해시 없음"}</small>
-                  </span>
-                  <span className="transaction-meta">
-                    <time>{formatKoreanDate(deposit.createdAt)}</time>
-                    <small>{deposit.network} · {deposit.state}</small>
-                  </span>
-                </button>
-              );
-            })
-          )}
-        </div>
+        {loading && deposits.length === 0 ? (
+          <div className="loading-list" aria-label={`${exchangeName} 입금 목록을 불러오는 중`}>
+            <i /><i /><i />
+          </div>
+        ) : (
+          <div className="transaction-list">
+            {deposits.length === 0 ? (
+              <div className="transaction-empty">
+                <span>
+                  입금 목록이 비어 있어요.{" "}
+                  <button type="button" className="text-button" onClick={onReloadDeposits}>
+                    다시 불러오기
+                  </button>
+                </span>
+              </div>
+            ) : (
+              deposits.map((deposit) => {
+                const selected = selectedDepositId === deposit.id;
+                return (
+                  <button
+                    type="button"
+                    className={selected ? "transaction-row is-selected" : "transaction-row"}
+                    key={deposit.id}
+                    onClick={() => onSelectDeposit(deposit.id)}
+                  >
+                    <span className="radio-mark" aria-hidden="true" />
+                    <span className="transaction-main">
+                      <b>{deposit.amount} {deposit.asset}</b>
+                      <small>{deposit.txHash ? `거래 번호 ${shortAddress(deposit.txHash, 10, 6)}` : "거래 번호 없음 (거래소 안 이체)"}</small>
+                    </span>
+                    <span className="transaction-meta">
+                      <time>{formatKoreanDate(deposit.createdAt)}</time>
+                      <small>{deposit.network} · {depositStateLabel(deposit.state)}</small>
+                    </span>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        )}
       </div>
     </>
   );

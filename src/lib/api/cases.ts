@@ -52,7 +52,8 @@ export async function lookupTransfers(txHash: string) {
   return data.transfers;
 }
 
-export async function getExchangeDeposits(input: { exchange: ExchangeSource; apiKey: string; apiSecret: string }) {
+// 화면은 키를 받지 않고 연결된 계정처럼 보여 줍니다. 키는 실제 거래소 연결을 붙일 때 넘깁니다.
+export async function getExchangeDeposits(input: { exchange: ExchangeSource; apiKey?: string; apiSecret?: string }) {
   const data = await post<{ deposits: ExchangeDeposit[] }>("/api/exchanges/deposits", input);
   return data.deposits;
 }

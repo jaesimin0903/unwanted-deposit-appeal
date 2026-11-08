@@ -1,8 +1,20 @@
 import { useRef, useState } from "react";
 import { AddressText } from "@/features/case/AddressText";
+import { AttachmentBoard, FileViewer, pdfViewerEnabled, type AttachmentState } from "@/features/case/AttachmentBoard";
+import type { StatementPart } from "@/features/case/screens/StatementScreen";
+import {
+  SLOT_LABELS,
+  SOURCE_OF_FUNDS_DOCUMENTS,
+  attachmentSlots,
+  filesIn,
+  type ExtraSlotId,
+  type PreparedFile,
+} from "@/features/case/attachments";
 import { parseNotice } from "@/features/case/notice";
+import { SCENARIO_MODE, SAMPLE_APPLICANT } from "@/features/case/scenario";
 import { SourceLinks } from "@/features/case/SourceLinks";
-import { RESTRICTION_LABELS, SCOPE_LABELS, exchangeLabel, todayInSeoul } from "@/profiles";
+import { RESTRICTION_LABELS, SCOPE_LABELS, exchangeLabel, getProfile, todayInSeoul } from "@/profiles";
+import { appealDocuments } from "@/server/report/appeal"; // 순수 함수: 5단계에서 파일을 넣거나 빼면 제출 자료 목록을 바로 다시 만듭니다
 import { SCOPE } from "@/server/constants";
 import {
   answerLabel,
@@ -35,10 +47,35 @@ const PAPER_DOCUMENT_STATUS: Record<Exclude<DocumentStatus, "needed">, string> =
   ready: "별도 첨부",
 };
 
-function paperDocuments(report: CaseReport) {
-  return report.documents.filter(
+function paperDocuments(documents: ReportDocument[]) {
+  return documents.filter(
     (document): document is ReportDocument & { status: Exclude<DocumentStatus, "needed"> } => document.status !== "needed",
   );
+}
+
+// 소명서 "제출 자료"에 적을 줄: 자료 종류마다 상태와 넣은 파일 이름, 그다음 통지 · 계정 화면 같은 그 밖의 칸
+const EXTRA_SLOTS: ExtraSlotId[] = ["notice", "account", "other"];
+
+interface PaperDocumentRow {
+  key: string;
+  label: string;
+  status: Exclude<DocumentStatus, "needed">;
+  files: PreparedFile[]; // 소명서에 작은 미리보기로 보여 줌
+  fileNames: string[];
+}
+
+function paperDocumentRows(documents: ReportDocument[], files: PreparedFile[]): PaperDocumentRow[] {
+  const rows: PaperDocumentRow[] = paperDocuments(documents).map((document) => {
+    const inSlot = filesIn(files, document.id);
+    return { key: document.id, label: document.label, status: document.status, files: inSlot, fileNames: inSlot.map((file) => file.name) };
+  });
+  for (const slot of EXTRA_SLOTS) {
+    const inSlot = filesIn(files, slot);
+    if (inSlot.length > 0) {
+      rows.push({ key: slot, label: SLOT_LABELS[slot], status: "ready", files: inSlot, fileNames: inSlot.map((file) => file.name) });
+    }
+  }
+  return rows;
 }
 
 // 소명서 안에서 쓰는 구분 이름. "확인할 수 없음"은 자백처럼 읽히지 않게 풀어 씁니다.
@@ -63,13 +100,16 @@ interface ReportScreenProps {
   analysis?: CaseAnalysis;
   statement: UserStatement;
   report?: CaseReport;
+  attachments: AttachmentState;
   onBack: () => void;
+  onEditPart: (part: StatementPart) => void; // 4단계의 그 순서로 돌아가 고치기
   onRestart: () => void;
 }
 
 // "제출 문안 복사"용 글자 버전. 화면의 소명서와 같은 순서로 씁니다.
 function reportText(
   report: CaseReport,
+  rows: PaperDocumentRow[],
   analysis: CaseAnalysis,
   statement: UserStatement,
   submission: SubmissionDetails,
@@ -107,8 +147,9 @@ function reportText(
   );
   if (statement.note.trim()) lines.push(`- ${statement.note.trim()}`);
   lines.push("", "제출 자료");
-  for (const document of paperDocuments(report)) {
-    lines.push(`- ${document.label}: ${PAPER_DOCUMENT_STATUS[document.status]}`);
+  for (const row of rows) {
+    const names = row.fileNames.length > 0 ? ` (파일: ${row.fileNames.join(", ")})` : "";
+    lines.push(`- ${row.label}: ${PAPER_DOCUMENT_STATUS[row.status]}${names}`);
   }
   lines.push("", "요청 사항", report.request);
   return lines.join("\n");
@@ -138,34 +179,48 @@ function EvidenceSection({ analysis, category }: { analysis: CaseAnalysis; categ
   );
 }
 
-export function ReportScreen({ submission, analysis, statement, report, onBack, onRestart }: ReportScreenProps) {
+// 소명서 맨 위 한 줄. "아직 모름 · 모름"처럼 읽히지 않게, 모르는 값은 "확인 전"으로 씁니다.
+function restrictionHeading(submission: SubmissionDetails) {
+  const type = submission.restrictionType === "unknown" ? null : RESTRICTION_LABELS[submission.restrictionType];
+  const scope = submission.scope === "unknown" ? null : SCOPE_LABELS[submission.scope];
+  if (!type && !scope) return "제한 내용 확인 전";
+  return [type ?? "제한 유형 확인 전", scope].filter(Boolean).join(" · ");
+}
+
+export function ReportScreen({ submission, analysis, statement, report, attachments, onBack, onEditPart, onRestart }: ReportScreenProps) {
   const [copyState, setCopyState] = useState<string>();
   const [applicant, setApplicant] = useState<Applicant>({ name: "", account: "", contact: "" });
-  const [skipped, setSkipped] = useState<string[]>([]); // "해당 없음"으로 끈 준비 알림
   const applicantRef = useRef<HTMLFieldSetElement>(null);
   if (!analysis || !report) return null;
   const today = todayInSeoul();
   const daysLeft = daysLeftLabel(report.route.deadline.date, today);
   // 통지가 자금 출처 자료를 요구했으면, 이 도구가 만들지 않는 그 자료를 "같이 낼 자료" 맨 위에 둡니다
   const asksSourceOfFunds = parseNotice(submission.requestText, today).asksSourceOfFunds;
-  const extraDocuments = asksSourceOfFunds
-    ? report.additionalDocuments.filter((document) => !document.startsWith("자금 출처를 추가로 요구받은 경우"))
-    : report.additionalDocuments;
+  // 통지가 자금 출처를 따로 요구하지 않았으면, 요구받을 때를 대비한 안내 한 줄만 남깁니다
+  const fundsNote = asksSourceOfFunds
+    ? undefined
+    : report.additionalDocuments.find((document) => document.startsWith("자금 출처를 추가로 요구받은 경우"));
   const { transfer, scope, walletAddress } = analysis;
   const hasExchange = submission.exchange !== "unspecified";
-  // 소명서 제출 자료 중 아직 준비하지 않은 것 (같이 낼 자료 단계에서 먼저 보여줍니다)
-  // 입금 경위 설명은 소명서의 핵심이라 "해당 없음"으로 끌 수 없고, 내용 수정에서 답하도록 안내합니다
-  const pendingDocuments = report
-    ? report.documents.filter((document) => document.status === "needed" && !skipped.includes(document.label))
-    : [];
-  // 본문을 고쳐야 하는 것(입금 경위)은 저장 전 확인으로, 함께 첨부할 자료만 "같이 낼 자료"로
-  const missingDeposit = pendingDocuments.some((document) => document.id === "depositReason");
-  const attachDocuments = pendingDocuments.filter((document) => document.id !== "depositReason");
-  // 자금 출처 자료로 쓸 수 있는 것을 하나라도 준비했으면 경고 대신 안내로
-  const sourceReady = report
-    ? report.documents.some((document) => document.status === "ready" && ["bankRecords", "otherExchangeRecords", "exchangeRecords"].includes(document.id))
-    : false;
-  const readyDocuments = report ? report.documents.filter((document) => document.status === "ready").map((document) => document.label) : [];
+  const profile = getProfile(submission.exchange);
+  // 국내 거래소는 "1:1 문의", 해외 거래소는 채팅 · 티켓처럼 창구가 달라서 "문의"로 씁니다 (창구 이름은 아래 제출 칸에 있음)
+  const inquiry = profile && profile.group !== "kr" ? "문의" : "1:1 문의";
+  // 서버가 만든 목록과 같은 함수로, 5단계에서 넣은 파일까지 반영해 다시 만듭니다 (온체인 기록과는 상관없는 부분)
+  const documents = appealDocuments({ submission, statement, profile });
+  const documentRows = paperDocumentRows(documents, attachments.files);
+  // 소명서 미리보기에서 크게 볼 파일 (이전 · 다음은 소명서에 적힌 순서)
+  const paperFiles = documentRows.flatMap((row) => row.files);
+  const [paperOpenId, setPaperOpenId] = useState<string | null>(null);
+  const pdfPreview = pdfViewerEnabled();
+  const slots = attachmentSlots({ submission, profile, asksSourceOfFunds });
+  // 파일을 넣었고 요청 · 요구 자료 칸이 모두 찼거나 "해당 없음"이면, 5단계에서는 파일 칸을 접어 둡니다
+  const filesSettled =
+    attachments.files.length > 0 &&
+    slots.every((slot) => !slot.wanted || filesIn(attachments.files, slot.id).length > 0 || attachments.skipped.includes(slot.id));
+  // 입금 경위 설명은 소명서 본문이라 파일로 낼 수 없고, 내용 수정에서 답하도록 안내합니다
+  const missingDeposit = documents.some((document) => document.id === "depositReason" && document.status === "needed");
+  // 자금 출처 자료 칸에 파일이 하나라도 있으면 경고 대신 안내로
+  const sourceFiles = attachments.files.filter((file) => (SOURCE_OF_FUNDS_DOCUMENTS as string[]).includes(file.slot)).length;
   const filledApplicant = [applicant.name, applicant.account, applicant.contact].filter((value) => value.trim()).length;
   // 통지 문구가 있으면 "통지에 사유가 없으면 먼저 요청" 안내는 이 화면에서 뺍니다
   const sideNotes = report
@@ -190,7 +245,7 @@ export function ReportScreen({ submission, analysis, statement, report, onBack, 
   const copyText = async () => {
     if (!confirmApplicant("복사")) return;
     try {
-      await navigator.clipboard.writeText(reportText(report, analysis, statement, submission, applicant));
+      await navigator.clipboard.writeText(reportText(report, documentRows, analysis, statement, submission, applicant));
       setCopyState("소명서 전체를 복사했습니다.");
     } catch {
       setCopyState("이 브라우저에서는 복사가 막혀 있습니다. PDF로 저장해 주세요.");
@@ -202,14 +257,27 @@ export function ReportScreen({ submission, analysis, statement, report, onBack, 
       <div className="section-heading compact-heading report-page-heading">
         <div>
           <h1 id="report-title">소명서</h1>
-          <p>신청인 칸을 채우고 내용을 확인한 뒤, 오른쪽 순서대로 내세요.</p>
+          <p>신청인 칸을 채우고 내용을 확인한 뒤, &ldquo;이렇게 내세요&rdquo; 순서대로 내세요.</p>
         </div>
       </div>
 
       <div className="report-layout">
         <article className="report-paper">
           <fieldset className="applicant-fields" ref={applicantRef}>
-            <legend>신청인 정보 · 소명서에만 적히고 서버로 보내지 않아요</legend>
+            <legend>
+              신청인 정보 · 소명서에만 적히고 서버로 보내지 않아요
+              {SCENARIO_MODE ? (
+                // 시연 시나리오: 예시 계정 화면과 같은 가짜 정보를 넣습니다 (scenario.ts)
+                <button
+                  type="button"
+                  className="text-button applicant-sample"
+                  onClick={() => setApplicant(SAMPLE_APPLICANT)}
+                  disabled={filledApplicant === 3}
+                >
+                  예시 정보 넣기
+                </button>
+              ) : null}
+            </legend>
             <label>
               <span>이름</span>
               <input value={applicant.name} onChange={(event) => setApplicant({ ...applicant, name: event.target.value })} autoComplete="off" placeholder="예) 홍길동" />
@@ -226,7 +294,7 @@ export function ReportScreen({ submission, analysis, statement, report, onBack, 
 
           <header>
             <div>
-              <p>{RESTRICTION_LABELS[submission.restrictionType]} · {SCOPE_LABELS[submission.scope]}</p>
+              <p>{restrictionHeading(submission)}</p>
               <h2>{report.title}</h2>
             </div>
             <span>작성일 {dotDate(report.generatedAt.slice(0, 10))}</span>
@@ -272,16 +340,6 @@ export function ReportScreen({ submission, analysis, statement, report, onBack, 
               <div><dt>처음 알게 된 날</dt><dd>{statement.discoveredAt || "미확인"}</dd></div>
             </dl>
             {statement.note ? <p>{statement.note}</p> : null}
-            {statement.attachments.length > 0 ? (
-              <div className="report-attachments">
-                <b>첨부 자료</b>
-                <ul>
-                  {statement.attachments.map((attachment) => (
-                    <li key={attachment.id}>{attachment.name}</li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
           </section>
 
           <EvidenceSection analysis={analysis} category="unverifiable" />
@@ -307,13 +365,43 @@ export function ReportScreen({ submission, analysis, statement, report, onBack, 
           <section className="report-copy">
             <h3>제출 자료</h3>
             <ul className="report-documents">
-              {paperDocuments(report).map((document) => (
-                <li key={document.id}>
-                  <span>{document.label}</span>
-                  <span className={`document-status is-${document.status}`}>{PAPER_DOCUMENT_STATUS[document.status]}</span>
+              {documentRows.map((row) => (
+                <li key={row.key}>
+                  <span>{row.label}</span>
+                  <span className={`document-status is-${row.status}`}>{PAPER_DOCUMENT_STATUS[row.status]}</span>
+                  {row.files.length > 0 ? (
+                    // 넣은 파일을 작게 보여 주고, 누르면 크게 봅니다. 인쇄 · PDF 저장에도 그대로 들어갑니다.
+                    <ul className="paper-files">
+                      {row.files.map((file) => (
+                        <li key={file.id}>
+                          <button type="button" className="paper-file" onClick={() => setPaperOpenId(file.id)} aria-label={`${file.name} 크게 보기`}>
+                            {file.type !== "application/pdf" ? (
+                              <img src={file.url} alt="" />
+                            ) : (
+                              <>
+                                {/* PDF는 화면에서 첫 쪽을 작게 보여 주고, 인쇄에는 iframe이 찍히지 않아 "PDF" 표시를 씁니다 */}
+                                {pdfPreview ? (
+                                  <iframe
+                                    className="paper-pdf"
+                                    src={`${file.url}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+                                    tabIndex={-1}
+                                    aria-hidden="true"
+                                    title={file.name}
+                                  />
+                                ) : null}
+                                <span className={pdfPreview ? "pdf-tile print-only" : "pdf-tile"}>PDF</span>
+                              </>
+                            )}
+                          </button>
+                          <small title={file.name}>{file.name}</small>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
                 </li>
               ))}
             </ul>
+            <FileViewer files={paperFiles} openId={paperOpenId} onSelect={setPaperOpenId} onRemove={attachments.onRemove} />
           </section>
 
           <section className="report-copy report-request">
@@ -333,7 +421,7 @@ export function ReportScreen({ submission, analysis, statement, report, onBack, 
             <li>
               <b>신청인 정보 채우기</b>
               <p className={filledApplicant < 3 ? "submit-pending" : "submit-done"}>
-                {filledApplicant < 3 ? `왼쪽 위 칸 3개 중 ${filledApplicant}개 채움` : "3개 모두 채움"}
+                {filledApplicant < 3 ? `소명서 맨 위 신청인 칸 3개 중 ${filledApplicant}개 채움` : "3개 모두 채움"}
               </p>
             </li>
             {missingDeposit || outgoingUnexplained ? (
@@ -348,7 +436,7 @@ export function ReportScreen({ submission, analysis, statement, report, onBack, 
                   {missingDeposit ? (
                     <li>
                       <span>입금 경위 설명이 없어요 (질문 답이 &quot;미확인&quot;으로 적혀요)</span>
-                      <button type="button" className="text-button" onClick={onBack}>
+                      <button type="button" className="text-button" onClick={() => onEditPart("questions")}>
                         내용 수정에서 답하기
                       </button>
                     </li>
@@ -358,7 +446,7 @@ export function ReportScreen({ submission, analysis, statement, report, onBack, 
                       <span>
                         기록 「<AddressText text={firstOutgoing.title} />」에 대한 본인 설명이 없어요
                       </span>
-                      <button type="button" className="text-button" onClick={onBack}>
+                      <button type="button" className="text-button" onClick={() => onEditPart("note")}>
                         내용 수정에서 적기
                       </button>
                     </li>
@@ -367,44 +455,37 @@ export function ReportScreen({ submission, analysis, statement, report, onBack, 
               </li>
             ) : null}
             <li>
+              <b>같이 낼 자료 넣기</b>
+              <p>파일을 넣으면 소명서의 제출 자료 목록에 이름이 적혀요. 눌러서 내용을 확인하세요.</p>
+              {asksSourceOfFunds ? (
+                <p className={sourceFiles > 0 ? "submit-info" : "submit-needed"}>
+                  통지가 요구한 <b>자금 출처 자료</b>(원화 입금 · 매수 내역, 급여 · 이체 내역 등)는 이 도구가 만들지 않아요.{" "}
+                  {sourceFiles > 0 ? `자금 출처 자료 칸에 파일 ${sourceFiles}개를 넣었어요.` : "따로 준비해 아래 칸에 넣어 주세요."}
+                </p>
+              ) : null}
+              {filesSettled ? (
+                // 4단계에서 다 넣었으면 접어 둡니다. 파일 이름은 왼쪽 소명서의 제출 자료에도 적혀 있어요.
+                <details className="submit-files">
+                  <summary>넣은 파일 {attachments.files.length}개 보기 · 바꾸기</summary>
+                  <AttachmentBoard slots={slots} variant="compact" {...attachments} />
+                </details>
+              ) : (
+                <AttachmentBoard slots={slots} variant="compact" {...attachments} />
+              )}
+              {fundsNote ? <p>{fundsNote}</p> : null}
+            </li>
+            <li>
               <b>소명서 저장</b>
-              <p>1:1 문의 본문에는 문안을 붙여넣고, PDF는 첨부 파일로 올리세요.</p>
+              <p>{inquiry} 글에는 복사한 문안을 붙여넣고, PDF와 위에서 넣은 파일을 첨부 파일로 올리세요.</p>
               <div className="submit-buttons">
                 <button className="primary-button" type="button" onClick={savePdf}>
                   PDF로 저장
                 </button>
                 <button className="secondary-button" type="button" onClick={copyText}>
-                  1:1 문의용 글 복사
+                  {inquiry}용 글 복사
                 </button>
               </div>
               {copyState ? <p className="copy-state" role="status">{copyState}</p> : null}
-            </li>
-            <li>
-              <b>같이 낼 자료</b>
-              {asksSourceOfFunds ? (
-                <p className={sourceReady ? "submit-info" : "submit-needed"}>
-                  통지가 요구한 <b>자금 출처 자료</b>(원화 입금 · 매수 내역, 급여 · 이체 내역 등)는 이 도구가 만들지 않아요.{" "}
-                  {sourceReady ? "준비한 자료를 첨부하고, 더 필요한 것이 있으면 같이 내세요." : "따로 준비해 같이 내세요."}
-                </p>
-              ) : null}
-              {attachDocuments.length > 0 ? (
-                <ul className="submit-pending-list" aria-label="아직 준비 안 된 자료">
-                  {attachDocuments.map((document) => (
-                    <li key={document.id}>
-                      <span>아직 준비 안 됨 · {document.label}</span>
-                      <button type="button" className="text-button" onClick={() => setSkipped([...skipped, document.label])}>
-                        해당 없음
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-              {readyDocuments.length > 0 ? <p>별도 첨부: {readyDocuments.join(", ")}</p> : null}
-              <ul className="submit-list">
-                {extraDocuments.map((document) => (
-                  <li key={document}>{document}</li>
-                ))}
-              </ul>
             </li>
             <li className={`deadline-${report.route.deadline.status}`}>
               <b>{hasExchange ? `${exchangeLabel(submission.exchange)}에 제출` : "제출"}</b>
@@ -433,6 +514,7 @@ export function ReportScreen({ submission, analysis, statement, report, onBack, 
       <div className="screen-actions report-actions">
         <button className="text-button restart-button" type="button" onClick={onRestart}>처음부터 다시</button>
         <button className="secondary-button" type="button" onClick={onBack}>내용 수정</button>
+        <button className="primary-button" type="button" onClick={savePdf}>PDF로 저장</button>
       </div>
     </section>
   );
