@@ -21,6 +21,8 @@ export interface AnalysisQuestion {
   question: string;
   answer: string;
   detail: string;
+  meaning: string; // 이 기록이 무슨 뜻인지 한 줄 (사실만, 판정하지 않음)
+  caution: boolean; // 사용자가 놀랄 수 있는 결과 (예: 제재 목록 일치)
   category: EvidenceCategory;
   sources: SourceRef[];
 }
@@ -65,13 +67,17 @@ export function analysisSummary(analysis: CaseAnalysis) {
   const { facts, scope } = analysis;
   const spray =
     facts.similarAmountCount > 1
-      ? `${limitNote(analysis)}보낸 주소는 ${scope.windowLabel} 동안 받은 주소 ${facts.senderRecipientCount}곳 중 ${facts.similarAmountCount}곳에 비슷한 금액을 보냈습니다.`
+      ? `${limitNote(analysis)}보낸 주소는 ${scope.windowLabel} 동안 상대 지갑 ${facts.senderRecipientCount}곳 중 ${facts.similarAmountCount}곳에 비슷한 금액을 보냈습니다.`
       : `${limitNote(analysis)}보낸 주소가 ${scope.windowLabel} 동안 비슷한 금액을 보낸 다른 주소는 확인되지 않았습니다.`;
   const prior =
     facts.priorDirectTransactions === 0
       ? "조회한 기록에서 입금 전 직접 거래는 확인되지 않았습니다."
       : `조회한 기록에서 입금 전 직접 거래가 ${facts.priorDirectTransactions}건 있습니다.`;
-  return `${spray} ${prior}`;
+  // 불리한 결과도 요약에서 빼지 않습니다
+  const sanctions = analysis.sanctions.senderMatched
+    ? "보낸 주소는 조회한 제재 목록과 일치합니다."
+    : "보낸 주소는 조회한 제재 목록에서 일치하지 않습니다.";
+  return `${spray} ${prior} ${sanctions}`;
 }
 
 export function analysisQuestions(analysis: CaseAnalysis): AnalysisQuestion[] {
@@ -87,38 +93,58 @@ export function analysisQuestions(analysis: CaseAnalysis): AnalysisQuestion[] {
     {
       id: "prior",
       code: "B",
-      question: "이전에 거래한 적이 있나요?",
+      question: "보낸 주소와 이전에 거래한 적이 있나요?",
       answer: `${facts.priorDirectTransactions}건`,
-      detail: "입금 전 두 주소가 직접 주고받은 전송",
+      detail: `입금 전 기록 전체에서 두 주소가 직접 주고받은 전송 (최대 ${analysis.scope.maxTransfers.toLocaleString("en-US")}건)`,
+      meaning:
+        facts.priorDirectTransactions === 0
+          ? "두 주소가 이 입금 전에 서로 주고받은 기록이 없어요 (조회한 범위 안)."
+          : "두 주소가 이 입금 전에 직접 주고받은 기록이 있어요.",
+      caution: false,
       category: prior[0]?.category ?? "verified",
       sources: sourcesOf(prior),
     },
     {
       id: "spray",
       code: "C",
-      question: "비슷한 금액을 여러 곳에 보냈나요?",
+      question: "보낸 주소가 비슷한 금액을 여러 곳에 보냈나요?",
       answer: `${facts.similarAmountCount}곳`,
-      detail: `${limitNote(analysis)}${scope.windowLabel}, 받은 주소 ${facts.senderRecipientCount}곳 중 ${facts.similarAmountCount}곳이 ${similarRange(transfer)}`,
+      detail: `${limitNote(analysis)}${scope.windowLabel}, 상대 지갑 ${facts.senderRecipientCount}곳 중 ${facts.similarAmountCount}곳이 ${similarRange(transfer)}`,
+      meaning:
+        facts.similarAmountCount > 1
+          ? "같은 시간대에 여러 지갑에 비슷한 금액을 보낸 기록이에요. 내 지갑도 그중 하나예요."
+          : "같은 시간대에 비슷한 금액을 받은 다른 지갑은 확인되지 않았어요.",
+      caution: false,
       category: spray[0]?.category ?? "derived",
       sources: sourcesOf(spray),
     },
     {
       id: "after",
       code: "D",
-      question: "보낸 주소로 돌려보냈나요?",
-      answer: facts.returnedToSender ? "있음" : "확인되지 않음",
+      question: "입금 후 보낸 주소로 다시 보낸 전송이 있나요?",
+      answer: facts.returnedToSender ? "있음" : "없음",
       detail: facts.returnedToSender
         ? (returnItem?.title ?? "입금 후 보낸 주소로 다시 보낸 기록이 있습니다")
-        : (firstOutgoing?.title ?? returnItem?.description ?? "입금 후 나간 전송은 확인되지 않았습니다"),
+        : `입금 후 ${SCOPE.afterDepositDays}일 동안 조회`,
+      meaning: facts.returnedToSender
+        ? "받은 뒤 보낸 주소로 다시 보낸 기록이 있어요."
+        : firstOutgoing
+          ? `다른 전송: ${firstOutgoing.title.replace(/습니다$/, "어요")}. 시간 순서만 나타내며, 무엇이었는지 4단계에서 적을 수 있어요.`
+          : "보낸 주소로 다시 보낸 기록은 없어요.",
+      caution: false,
       category: after[0]?.category ?? "verified",
       sources: sourcesOf(after),
     },
     {
       id: "sanctions",
       code: "S",
-      question: "제재 목록과 일치하나요?",
-      answer: sanctions.senderMatched ? "일치" : "일치하지 않음",
+      question: "보낸 주소가 제재 목록에 있나요?",
+      answer: sanctions.senderMatched ? "있음" : "없음",
       detail: `${sanctions.listName} (${sanctions.listUpdatedAt} 기준)`,
+      meaning: sanctions.senderMatched
+        ? "목록에 있는 것은 보낸 주소예요 (내 지갑은 비교하지 않음). 이더리움은 받는 쪽 동의 없이도 보낼 수 있어요."
+        : "조회한 제재 목록에 보낸 주소가 없어요. 목록 밖이라고 안전한 주소라는 뜻은 아니에요.",
+      caution: sanctions.senderMatched,
       category: sanction[0]?.category ?? "verified",
       sources: sourcesOf(sanction),
     },

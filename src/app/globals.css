@@ -627,7 +627,7 @@ select:focus-visible {
   min-height: 76px;
   padding: 12px 16px;
   display: grid;
-  grid-template-columns: 18px 48px minmax(220px, 1fr) minmax(190px, auto);
+  grid-template-columns: 18px minmax(220px, 1fr) minmax(190px, auto);
   align-items: center;
   gap: 10px;
   text-align: left;
@@ -757,6 +757,12 @@ select:focus-visible {
   line-height: 1.18;
   letter-spacing: -0.04em;
   font-weight: 720;
+}
+
+.onchain-lead {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 14px;
 }
 
 .onchain-meta {
@@ -893,7 +899,7 @@ select:focus-visible {
 
 .question-answer {
   margin: 0;
-  font-size: 30px;
+  font-size: 26px;
   font-weight: 760;
   line-height: 1.15;
   letter-spacing: -0.03em;
@@ -901,10 +907,28 @@ select:focus-visible {
 
 .question-detail {
   margin: 0;
-  flex: 1;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.45;
+}
+
+/* 이 기록이 무슨 뜻인지 한 줄 */
+.question-meaning {
+  margin: 2px 0 0;
+  flex: 1;
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+/* 놀랄 수 있는 결과는 위험(빨강) 대신 확인할 일(주황)로 */
+.question-card.is-caution {
+  background: var(--derived-soft);
+  border-color: #fcd34d;
+}
+
+.question-card.is-caution .question-answer {
+  color: var(--derived);
 }
 
 .question-foot {
@@ -1120,9 +1144,16 @@ select:focus-visible {
   letter-spacing: 0.04em;
 }
 
+/* "확인할 수 없음"은 오류가 아니라 범위 밖이라서 회색으로 */
 .evidence-item.evidence-unverifiable > span,
 .evidence-item.evidence-unverifiable h3 {
-  color: var(--issue);
+  color: var(--muted);
+}
+
+/* 문장 속 주소 · 해시 (AddressText) */
+.addr {
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 0.92em;
 }
 
 .evidence-item h3 {
@@ -1384,7 +1415,7 @@ select:focus-visible {
   accent-color: var(--action);
 }
 
-.doc-check > span:not(.field-chip) {
+.doc-check > span:not(.field-chip):not(.doc-chips) {
   display: flex;
   flex-direction: column;
   gap: 1px;
@@ -1400,7 +1431,7 @@ select:focus-visible {
   font-size: 13px;
 }
 
-.doc-check .field-chip {
+.doc-check .doc-chips {
   align-self: center;
 }
 
@@ -1768,6 +1799,61 @@ select:focus-visible {
   border-bottom: 1px solid var(--border);
 }
 
+/* 주소 · 해시는 담당자가 대조할 수 있게 끝까지 적습니다 */
+.report-metadata .is-wide {
+  grid-column: 1 / -1;
+}
+
+.report-metadata .is-wide dd {
+  overflow: visible;
+  white-space: normal;
+  word-break: break-all;
+}
+
+/* 신청인 정보 입력 (인쇄에는 나오지 않음) */
+.applicant-fields {
+  margin: 0 0 16px;
+  padding: 10px 12px 12px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  background: var(--action-soft);
+  border: 1px dashed #93c5fd;
+  border-radius: var(--radius);
+}
+
+.applicant-fields legend {
+  padding: 0 4px;
+  color: var(--action);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.applicant-fields label {
+  display: grid;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 650;
+}
+
+.applicant-fields input {
+  height: 32px;
+  padding: 0 8px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.restart-button {
+  margin-right: auto;
+  color: var(--muted);
+}
+
 .report-metadata.is-three-columns {
   grid-template-columns: repeat(3, 1fr);
 }
@@ -1787,9 +1873,7 @@ select:focus-visible {
 
 .report-metadata dd {
   margin-top: 2px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
   font-weight: 650;
   font-family: "SFMono-Regular", Consolas, monospace;
 }
@@ -1978,47 +2062,158 @@ select:focus-visible {
 }
 
 .deadline-soon .route-deadline,
-.deadline-passed .route-deadline,
-.deadline-unknown .route-deadline {
+.deadline-passed .route-deadline {
   color: var(--issue);
   font-weight: 650;
 }
 
-.submission-panel > div > p:last-child {
+/* 소명서 오른쪽: "이렇게 내세요" 순서 */
+.submit-steps {
+  margin: 12px 0;
+  word-break: keep-all;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+  list-style: none;
+  counter-reset: submit-step;
+}
+
+.submit-steps > li {
+  position: relative;
+  padding-left: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  counter-increment: submit-step;
+}
+
+.submit-steps > li::before {
+  content: counter(submit-step);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  color: var(--action);
+  background: var(--action-soft);
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.submit-steps > li > b {
+  font-size: 14px;
+}
+
+.submit-steps p {
   margin: 0;
   color: var(--muted);
   font-size: 12px;
+  line-height: 1.5;
 }
 
-.submission-panel ul {
+.submit-steps > li:last-child p:first-of-type {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.submit-buttons {
+  margin-top: 4px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.submit-buttons button {
+  min-height: 38px;
+  padding: 0 8px;
+  font-size: 13px;
+}
+
+.submit-pending {
+  color: var(--derived) !important;
+  font-weight: 650;
+}
+
+.submit-done {
+  color: var(--ok) !important;
+  font-weight: 650;
+}
+
+.submit-pending-list {
+  margin: 0;
   padding: 0;
-  margin: 13px 0;
+  display: grid;
+  gap: 4px;
   list-style: none;
-  border-top: 1px solid var(--border);
 }
 
-.submission-panel li {
-  position: relative;
-  padding: 9px 0 9px 18px;
-  border-bottom: 1px solid var(--border);
+.submit-pending-list li {
+  padding: 5px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--issue);
+  background: var(--issue-soft);
+  border-radius: 6px;
   font-size: 12px;
 }
 
-.submission-panel li::before {
-  content: "";
-  position: absolute;
-  left: 1px;
-  top: 14px;
-  width: 8px;
-  height: 4px;
-  border-left: 2px solid var(--action);
-  border-bottom: 2px solid var(--action);
-  transform: rotate(-45deg);
+/* 선택 항목(입금 후 전송 설명)은 경고색이 아니라 중립색으로 */
+.submit-pending-list li.is-optional {
+  color: var(--ink);
+  background: var(--surface-subtle);
+}
+
+.submit-pending-list .text-button {
+  flex: none;
+  font-size: 12px;
+}
+
+.summary-statement {
+  margin-top: 6px !important;
+  color: var(--muted);
+  font-size: 12px !important;
+}
+
+.submit-info {
+  padding: 6px 8px;
+  color: var(--ink) !important;
+  background: var(--surface-subtle);
+  border-radius: 6px;
+}
+
+.submit-needed {
+  padding: 6px 8px;
+  color: var(--issue) !important;
+  background: var(--issue-soft);
+  border-radius: 6px;
+}
+
+.submit-list,
+.submit-notes {
+  margin: 0;
+  padding: 0 0 0 16px;
+  display: grid;
+  gap: 3px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.submit-notes {
+  margin-bottom: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
 }
 
 .submission-warning {
   padding: 10px;
-  margin-bottom: 12px;
   background: var(--surface-subtle);
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -2108,9 +2303,9 @@ select:focus-visible {
   .section-heading h1 { font-size: 28px; }
   .address-search { grid-template-columns: 1fr; }
   .address-search .secondary-button { width: 100%; }
-  .transaction-row { grid-template-columns: 18px 42px 1fr; }
+  .transaction-row { grid-template-columns: 18px 1fr; }
   .transaction-meta {
-    grid-column: 3;
+    grid-column: 2;
     align-items: flex-start;
   }
   .onchain-head { flex-wrap: wrap; }
@@ -2121,12 +2316,13 @@ select:focus-visible {
   .answer-segment { display: flex; }
   .answer-segment label { flex: 1; min-width: 0; }
   .doc-check { grid-template-columns: 20px minmax(0, 1fr); }
-  .doc-check .field-chip { grid-column: 2; justify-self: start; }
+  .doc-check .doc-chips { grid-column: 2; justify-self: start; justify-content: flex-start; }
   .file-box .attachment-button { justify-self: start; }
   .report-paper { padding: 18px 16px; }
   .report-paper > header { flex-direction: column; gap: 7px; }
   .report-metadata,
   .statement-box dl { grid-template-columns: repeat(2, 1fr); }
+  .applicant-fields { grid-template-columns: 1fr; }
   .report-copy ol { grid-template-columns: 1fr; }
   .report-page-heading { align-items: flex-start; }
 }
@@ -2137,7 +2333,8 @@ select:focus-visible {
   .workflow-sidebar,
   .report-page-heading,
   .submission-panel,
-  .report-actions { display: none !important; }
+  .report-actions,
+  .applicant-fields { display: none !important; }
   .workspace { width: 100%; height: auto; padding: 0; overflow: visible; }
   .report-layout { display: block; }
   .report-paper { padding: 0; border: 0; }
@@ -2162,6 +2359,13 @@ a.source-button {
 
 .source-tabs {
   margin-bottom: 12px;
+}
+
+.address-hint {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .address-helpers {
@@ -2302,7 +2506,7 @@ a.source-button {
 }
 
 .report-unverifiable h3 {
-  color: var(--issue);
+  color: var(--muted);
 }
 
 .statement-caption {
@@ -2336,73 +2540,228 @@ a.source-button {
   }
 }
 
-/* ── 1단계 상황 · 거래소 프로필 ─────────────────────────────── */
-.situation-layout {
+/* 기한을 아직 모를 때는 경고(빨강) 대신 확인할 일(주황)로 */
+.deadline-unknown .route-deadline {
+  color: var(--derived);
+  font-weight: 650;
+}
+
+.days-left {
+  margin-left: 8px;
+  padding: 1px 7px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.deadline-soon .days-left,
+.deadline-passed .days-left {
+  color: var(--issue);
+  border-color: #fecdca;
+}
+
+.notice-hints {
+  padding: 8px 10px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 10px;
+  background: var(--action-soft);
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.notice-hints .notice-apply {
+  height: 30px;
+  min-height: 0;
+  padding: 0 12px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.notice-hints.is-conflict {
+  background: var(--derived-soft);
+}
+
+.result-callout {
+  margin: 0;
+  padding: 8px 10px;
+  color: var(--derived);
+  background: var(--derived-soft);
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ── 1단계 상황판: 왼쪽 입력, 오른쪽 결론 → 근거 약관 ─────────────── */
+.board-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  gap: 16px;
   align-items: start;
 }
 
-.situation-column {
+.board-inputs {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
 }
 
-.situation-panel {
-  padding: 16px;
+.board-block {
+  min-width: 0;
+  padding: 12px 14px 14px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
 }
 
-.situation-panel h2 {
+.board-block h2 {
   margin: 0;
-  font-size: 18px;
-  letter-spacing: -0.025em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  letter-spacing: -0.02em;
 }
 
-.notice-grid {
+.board-block h2 small {
+  color: var(--faint);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.board-step {
+  width: 20px;
+  height: 20px;
+  display: inline-grid;
+  place-items: center;
+  color: var(--action);
+  background: var(--action-soft);
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.restriction-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0 14px;
-  align-items: end;
-}
-
-.notice-grid .text-field {
-  margin-top: 12px;
-}
-
-.notice-wide {
-  grid-column: 1 / -1;
-}
-
-.exchange-group {
-  display: flex;
-  flex-direction: column;
   gap: 6px;
 }
 
-.exchange-group-label,
-.profile-subtitle {
+.restriction-card {
+  position: relative;
+  padding: 8px 10px 9px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.restriction-card:hover {
+  border-color: var(--border-strong);
+}
+
+.restriction-card.is-selected {
+  background: var(--action-soft);
+  border-color: var(--action);
+}
+
+.restriction-card:has(input:focus-visible) {
+  outline: 2px solid var(--action);
+  outline-offset: 2px;
+}
+
+.restriction-card input {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  margin: 0;
+  accent-color: var(--action);
+}
+
+.restriction-card b {
+  font-size: 14px;
+}
+
+.restriction-card small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.exchange-row {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.exchange-group-label {
   color: var(--muted);
   font-size: 12px;
   font-weight: 650;
 }
 
-.exchange-button {
-  min-width: 0;
-  height: 36px;
-  font-size: 14px;
+.exchange-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
-.exchange-button.is-unverified:not(.is-selected) {
+.exchange-chip {
+  height: 32px;
+  padding: 0 12px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.exchange-chip:hover {
+  border-color: var(--action);
+}
+
+.exchange-chip.is-unverified:not(.is-selected) {
+  color: var(--muted);
   border-style: dashed;
+}
+
+.exchange-chip.is-selected {
+  color: #fff;
+  background: var(--action);
+  border-color: var(--action);
+}
+
+.exchange-chip:focus-visible {
+  outline: 2px solid var(--action);
+  outline-offset: 2px;
 }
 
 .profile-legend {
@@ -2428,58 +2787,301 @@ a.source-button {
   border-style: dashed;
 }
 
-.profile-panel {
-  padding-top: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  border-top: 1px solid var(--border);
-}
-
-.profile-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.profile-head b {
-  font-size: 16px;
-}
-
-.profile-fields {
-  margin: 0;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  font-size: 13px;
-}
-
-.profile-fields > div {
+.notice-row {
   display: grid;
-  grid-template-columns: 112px minmax(0, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  align-items: end;
 }
 
-.profile-fields > div + div {
-  border-top: 1px solid var(--border);
+.board-block .select-field > span,
+.board-block .text-field > span {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: 650;
 }
 
-.profile-fields dt {
+.notice-row .select-field select,
+.notice-row .text-field input {
+  height: 38px;
+  padding-left: 10px;
+}
+
+.board-block textarea {
+  field-sizing: content;
+  max-height: 160px;
+  min-height: 40px;
   padding: 8px 10px;
+  resize: vertical;
+}
+
+.board-hint {
+  margin: 0;
   color: var(--muted);
-  background: var(--surface-subtle);
   font-size: 12px;
 }
 
-.profile-fields dd {
-  margin: 0;
-  padding: 8px 10px;
+/* 오른쪽: 결론 카드가 먼저, 근거 약관은 한 줄씩.
+   화면 높이에 맞춰 따라오고, 근거 목록만 안에서 스크롤합니다. */
+.board-result {
+  position: sticky;
+  top: 16px;
   min-width: 0;
+  /* 처음 화면에서는 위에 제목(약 100px)이 있어서 그만큼 뺍니다 */
+  max-height: calc(100dvh - 124px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.board-next {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.result-card {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--action-soft);
+  border: 1px solid #bfdbfe;
+  border-radius: var(--radius);
+}
+
+.result-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.result-head h2 {
+  margin: 0;
+  font-size: 17px;
+  letter-spacing: -0.02em;
+}
+
+.result-rows {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.result-rows > div {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 10px;
+  align-items: baseline;
+}
+
+.result-rows dt {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.result-rows dd {
+  margin: 0;
+  min-width: 0;
+  font-size: 13px;
+}
+
+.result-rows .result-main {
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.result-rows small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.result-docs {
+  margin: 0 0 4px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  list-style: none;
+}
+
+.result-docs li {
+  padding: 2px 8px;
+  background: var(--surface);
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.result-notes {
+  margin: 0;
+  padding: 8px 0 0 16px;
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+  border-top: 1px solid #dbeafe;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.evidence-panel {
+  min-height: 0;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.evidence-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.evidence-head h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.evidence-head span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.evidence-rows {
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.evidence-rows > li + li {
+  border-top: 1px solid var(--border);
+}
+
+.evidence-rows summary {
+  padding: 6px 10px;
+  display: grid;
+  grid-template-columns: 136px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  list-style: none;
+  cursor: pointer;
+}
+
+.evidence-rows summary::-webkit-details-marker {
+  display: none;
+}
+
+.evidence-rows summary:hover {
+  background: var(--surface-subtle);
+}
+
+.evidence-rows summary:focus-visible {
+  outline: 2px solid var(--action);
+  outline-offset: -2px;
+}
+
+.evidence-rows summary b {
+  overflow: hidden;
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.evidence-scope {
+  margin-left: 5px;
+  padding: 0 5px;
+  color: var(--muted);
+  background: var(--neutral-soft);
+  border-radius: 4px;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 600;
+}
+
+.evidence-rows summary b::before {
+  content: "▸";
+  margin-right: 5px;
+  color: var(--faint);
+  font-size: 10px;
+}
+
+.evidence-rows details[open] > summary b::before {
+  content: "▾";
+}
+
+.evidence-preview {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.evidence-rows details[open] > summary .evidence-preview {
+  visibility: hidden;
+}
+
+.evidence-state {
+  padding: 1px 7px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.evidence-state.is-verified {
+  color: var(--ok);
+  background: var(--ok-soft);
+}
+
+.evidence-state.is-check {
+  color: var(--muted);
+  border-color: var(--border-strong);
+  border-style: dashed;
+}
+
+.evidence-state.is-caution {
+  color: var(--issue);
+  background: var(--issue-soft);
+}
+
+.evidence-body {
+  padding: 0 10px 10px 156px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 4px;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1.6;
 }
 
+.evidence-body p {
+  margin: 0;
+}
+
+.evidence-body .field-chip {
+  display: inline-block;
+  max-width: 100%;
+  border-radius: 8px;
+  white-space: normal;
+}
+
+/* 상태 칩 (1단계 근거, 4단계 자료 등에서 같이 씀) */
 .field-chip {
   display: inline-flex;
   padding: 1px 8px;
@@ -2507,10 +3109,75 @@ a.source-button {
   border-color: #fecdca;
 }
 
+.field-chip a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .profile-note {
   margin: 0;
   color: var(--muted);
   font-size: 12px;
+}
+
+/* 4단계: 소명서에 들어가는 입금 후 전송을 알려 주는 한 줄 */
+.stmt-date-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.stmt-date-wrap .text-button {
+  font-size: 12px;
+}
+
+.request-note {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  color: var(--derived);
+  background: var(--derived-soft);
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.note-context {
+  margin: 0 0 6px;
+  padding: 8px 10px;
+  color: var(--ink);
+  background: var(--surface-subtle);
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.doc-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+/* 4단계: 고른 요청이 소명서에 들어갈 문장 */
+.request-preview {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  display: grid;
+  gap: 4px;
+  color: var(--ink);
+  background: var(--surface-subtle);
+  border-left: 3px solid var(--action);
+  border-radius: 0 6px 6px 0;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.request-preview > span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
 }
 
 /* ── 4단계 요청 유형 경고 ──────────────────────────────────── */
@@ -2529,6 +3196,12 @@ a.source-button {
   padding: 0;
   list-style: none;
   border-top: 1px solid var(--border);
+}
+
+/* 본문 번호(01, 02…)는 기록 목록에만. 자료 목록에 붙으면 첫 글자를 덮습니다 */
+.report-documents li::before,
+.report-attachments li::before {
+  content: none;
 }
 
 .report-documents li {
@@ -2577,17 +3250,36 @@ a.source-button {
 }
 
 @media (max-width: 1100px) {
-  .situation-layout {
+  .board-layout {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .board-result {
+    position: static;
+    max-height: none;
   }
 }
 
 @media (max-width: 760px) {
-  .notice-grid {
+  .restriction-grid,
+  .notice-row {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .profile-fields > div {
+  .result-rows > div {
     grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+
+  .evidence-rows summary {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .evidence-preview {
+    display: none;
+  }
+
+  .evidence-body {
+    padding-left: 10px;
   }
 }

@@ -41,12 +41,21 @@ export function appealTitle(submission: SubmissionDetails): string {
     case "phishing":
       return "지급정지 이의제기 자료";
     default:
-      return submission.requestType === "fund" ? "문제 입금 보류 재확인 요청" : "계정 · 기존 잔액 재검토 요청";
+      return submission.requestType === "fund" ? "문제 입금 보류 재확인 요청" : ACCOUNT_REVIEW[submission.scope].title;
   }
 }
 
+// 계정 · 기존 잔액 재검토는 받은 제한의 범위에 맞춰 부릅니다.
+// 통지에 "출금 제한"이라고 왔으면 소명서도 같은 말을 써야 담당자와 사용자가 같은 것을 가리킵니다.
+const ACCOUNT_REVIEW: Record<SubmissionDetails["scope"], { title: string; target: string }> = {
+  withdraw: { title: "출금 제한 재검토 요청", target: "기존 잔액에 대한 출금 제한" },
+  account: { title: "계정 제한 재검토 요청", target: "계정 기능과 기존 잔액에 대한 제한" },
+  deposit: { title: "계정 · 기존 잔액 재검토 요청", target: "기존 잔액과 계정 기능에 대한 제한" },
+  unknown: { title: "계정 · 기존 잔액 재검토 요청", target: "기존 잔액과 계정 기능에 대한 제한" },
+};
+
 const REVIEW_LEAD =
-  "위 온체인 기록과 사용자 설명을 구분해 정리했습니다. 각 항목의 원본 링크로 기록을 직접 확인해 주시기 바랍니다.";
+  "위 온체인 기록과 본인 설명을 구분해 정리했습니다. 각 항목의 원본 링크로 기록을 직접 확인해 주시기 바랍니다.";
 
 export function appealRequest(
   submission: SubmissionDetails,
@@ -75,7 +84,7 @@ export function appealRequest(
           .filter(Boolean)
           .join(" ");
       }
-      return `${REVIEW_LEAD} 본인은 문제 입금분(${amountText}) 보류에 이의가 없습니다. 문제 입금과 구분되는 기존 잔액과 계정 기능에 대한 제한을 재검토해 주시기 바랍니다.`;
+      return `${REVIEW_LEAD} 본인은 문제 입금분(${amountText}) 보류에 이의가 없습니다. 문제 입금과 구분되는 ${ACCOUNT_REVIEW[submission.scope].target}을 재검토해 주시기 바랍니다.`;
   }
 }
 

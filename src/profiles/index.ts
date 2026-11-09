@@ -11,6 +11,7 @@ export {
   RESTRICTION_DESCRIPTIONS,
   RESTRICTION_LABELS,
   SCOPE_LABELS,
+  requestTypeLabel,
 } from "@/profiles/labels";
 export { PROFILE_ORDER, PROFILES, exchangeLabel, getProfile } from "@/profiles/registry";
 export { getSubmissionRoute, todayInSeoul } from "@/profiles/route";

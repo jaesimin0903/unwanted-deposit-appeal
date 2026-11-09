@@ -44,8 +44,8 @@ export function analyzeSprayPattern(senderOutgoing: PagedTransfers, transfer: Tr
     id: "C-spray",
     category: "derived",
     analysis: "C",
-    title: `보낸 주소는 ${windowLabel} 동안 ${similarRecipients.size}개 주소에 비슷한 금액을 보냈습니다`,
-    description: `같은 기간 보낸 전송 ${scopeNote} 확인했습니다. 받은 주소는 ${recipients.size}개이고, 그중 ${similarRecipients.size}개가 ${amount(transfer)}의 ±${Math.round(SCOPE.similarAmountRatio * 100)}% 범위입니다.`,
+    title: `보낸 주소는 ${windowLabel} 동안 상대 지갑 ${recipients.size}곳 중 ${similarRecipients.size}곳에 비슷한 금액을 보냈습니다`,
+    description: `같은 기간 보낸 전송 ${scopeNote} 확인했습니다. 상대 지갑 ${recipients.size}곳 중 ${similarRecipients.size}곳이 받은 금액이 ${amount(transfer)}의 ±${Math.round(SCOPE.similarAmountRatio * 100)}% 범위입니다.`,
     sources: [addressSource(transfer.from, "보낸 주소의 전송 기록", EXPLORER_BASE)],
   };
 

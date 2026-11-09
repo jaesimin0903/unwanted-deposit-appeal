@@ -1,3 +1,4 @@
+import { AddressText } from "@/features/case/AddressText";
 import { formatKoreanDate, shortAddress } from "@/features/case/utils";
 import type { ExchangeDeposit, ExchangeSource, Transfer } from "@/types/case";
 
@@ -97,7 +98,7 @@ function WalletIntake({
     <>
       <div className="address-search">
         <label>
-          <span>Ethereum 지갑 주소</span>
+          <span>입금을 받은 주소 (이더리움)</span>
           <input
             value={walletAddress}
             placeholder="0x로 시작하는 42자리 주소"
@@ -114,10 +115,13 @@ function WalletIntake({
             메타마스크에서 주소 가져오기
           </button>
           <button type="button" className="text-button" onClick={onUseExample}>
-            예시 주소 넣기
+            예시 주소로 보기
           </button>
           <small>메타마스크는 주소만 읽습니다. 서명 요청은 하지 않습니다.</small>
         </div>
+        <p className="address-hint">
+          거래소 계정으로 받았다면 거래소 앱의 <b>입출금 &gt; 이더리움 &gt; 입금 주소</b>를, 개인 지갑으로 받았다면 그 지갑 주소를 넣으세요.
+        </p>
       </div>
 
       <div className="transaction-panel">
@@ -148,14 +152,14 @@ function WalletIntake({
                     onClick={() => onSelectTransfer(transfer.id)}
                   >
                     <span className="radio-mark" aria-hidden="true" />
-                    <span className="transaction-direction">받음</span>
                     <span className="transaction-main">
                       <b>{transfer.displayValue} {transfer.asset}</b>
-                      <small>{shortAddress(transfer.from, 8, 6)}에서 받음</small>
+                      <small>
+                        <AddressText text={shortAddress(transfer.from, 8, 6)} />에서 받음
+                      </small>
                     </span>
                     <span className="transaction-meta">
                       <time>{formatKoreanDate(transfer.timestamp)}</time>
-                      <small>블록 {transfer.blockNumber.toLocaleString("en-US")}</small>
                     </span>
                   </button>
                 );
@@ -237,7 +241,6 @@ function ExchangeIntake({
                   onClick={() => onSelectDeposit(deposit.id)}
                 >
                   <span className="radio-mark" aria-hidden="true" />
-                  <span className="transaction-direction">입금</span>
                   <span className="transaction-main">
                     <b>{deposit.amount} {deposit.asset}</b>
                     <small>{deposit.txHash ? `거래 해시 ${shortAddress(deposit.txHash, 10, 6)}` : "거래 해시 없음"}</small>

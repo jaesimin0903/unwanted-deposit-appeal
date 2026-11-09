@@ -3,7 +3,7 @@
 //
 // 이더리움은 받은 돈과 원래 잔액이 한 잔액으로 합쳐집니다.
 // 그래서 "그 돈을 썼다/안 썼다"는 말할 수 없고, 시간 순서와 상대만 말합니다.
-//   O  "입금 10분 뒤 다른 주소로 0.3 ETH를 보냈습니다"
+//   O  "입금 10분 뒤 본인 지갑이 다른 주소로 0.3 ETH를 보냈습니다" (누가 보냈는지 주어를 씁니다)
 //   O  "입금 후 보낸 주소로 다시 보낸 기록은 확인되지 않았습니다"
 //   X  "받은 돈을 쓰지 않았습니다"
 //
@@ -53,7 +53,7 @@ export function analyzeAfterDeposit(walletOutgoing: PagedTransfers, transfer: Tr
       id: "D-first-outgoing",
       category: "verified",
       analysis: "D",
-      title: `입금 ${afterLabel(minutes)} 다른 주소로 ${amount(firstOutgoingAfter)}를 보냈습니다`,
+      title: `입금 ${afterLabel(minutes)} 본인 지갑이 다른 주소로 ${amount(firstOutgoingAfter)}를 보냈습니다`,
       description: `${kst(firstOutgoingAfter.timestamp)}, 받는 주소 ${short(firstOutgoingAfter.to, 8, 6)}. 시간 순서만 나타내며, 이번 입금액이 포함됐는지는 알 수 없습니다.`,
       sources: [txSource(firstOutgoingAfter, "입금 후 첫 전송")],
     });

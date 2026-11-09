@@ -50,6 +50,13 @@ describe("제목과 요청 사항", () => {
     assert.match(appealRequest(base, amountInput), /보류에 이의가 없습니다/);
   });
 
+  it("계정 재검토는 받은 제한의 범위와 같은 말로 부른다", () => {
+    const withdraw = { ...base, scope: "withdraw" as const };
+    assert.equal(appealTitle(withdraw), "출금 제한 재검토 요청");
+    assert.match(appealRequest(withdraw, amountInput), /기존 잔액에 대한 출금 제한을 재검토/);
+    assert.equal(appealTitle({ ...base, scope: "account" }), "계정 제한 재검토 요청");
+  });
+
   it("보류 해제 요청에서 제재 목록이 일치하면 별도 절차를 알린다", () => {
     const submission = { ...base, requestType: "fund" as const };
     assert.equal(appealTitle(submission), "문제 입금 보류 재확인 요청");

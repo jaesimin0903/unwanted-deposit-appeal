@@ -12,8 +12,8 @@ export function listUnknowns(scope: AnalysisScope): EvidenceItem[] {
       id: "E-intent",
       category: "unverifiable",
       analysis: "E",
-      title: "사용자의 실제 의도",
-      description: "온체인 기록으로 확인할 수 없는 내용입니다. 사용자 설명으로만 제시합니다.",
+      title: "본인의 실제 의도",
+      description: "온체인 기록으로 확인할 수 없는 내용입니다. 본인 설명으로만 제시합니다.",
       sources: [],
     },
     {
