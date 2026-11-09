@@ -3,8 +3,18 @@
 
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { researchProfile } from "@/profiles/build";
 import { appealDocuments, appealRequest, appealTitle, normalizeSubmission } from "@/server/report/appeal";
-import type { UserStatement } from "@/types/case";
+import type { ExchangeProfile, UserStatement } from "@/types/case";
+
+// 실제 거래소 프로필 대신 쓰는 고정 프로필입니다.
+// 국내 · 해외 담당이 프로필을 채워도 이 공용 테스트를 고칠 일이 없게 하려는 것입니다 (CONTRIBUTING.md).
+const verifiedProfile: ExchangeProfile = {
+  ...researchProfile("upbit", "업비트", "kr"),
+  status: "verified",
+  requestedDocuments: ["txHash", "depositReason", "bankRecords", "otherExchangeRecords"],
+};
+const researchingProfile = researchProfile("bithumb", "빗썸", "kr");
 
 const blankStatement: UserStatement = {
   requestedTransfer: null,
@@ -71,10 +81,11 @@ describe("제출 자료 목록", () => {
     assert.equal(docs.find((doc) => doc.id === "depositReason")?.status, "needed");
   });
 
-  it("업비트 요청 항목을 표시하고, 준비한 자료는 준비함", () => {
+  it("거래소가 요청한 자료는 요청 항목으로 표시하고, 준비한 자료는 준비함", () => {
     const docs = appealDocuments({
       submission: { ...base, availableDocuments: ["bankRecords"] },
       statement: { ...blankStatement, requestedTransfer: "no" },
+      profile: verifiedProfile,
     });
     const bank = docs.find((doc) => doc.id === "bankRecords");
     assert.equal(bank?.status, "ready");
@@ -84,7 +95,11 @@ describe("제출 자료 목록", () => {
   });
 
   it("리서치 중인 거래소는 요청 항목이라고 표시하지 않는다", () => {
-    const docs = appealDocuments({ submission: { ...base, exchange: "bithumb" }, statement: blankStatement });
+    const docs = appealDocuments({
+      submission: { ...base, exchange: "bithumb" },
+      statement: blankStatement,
+      profile: researchingProfile,
+    });
     assert.ok(docs.every((doc) => doc.note === ""));
   });
 });
