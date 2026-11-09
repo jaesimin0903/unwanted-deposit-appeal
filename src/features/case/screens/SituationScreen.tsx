@@ -11,9 +11,11 @@ import {
   getSubmissionRoute,
   todayInSeoul,
 } from "@/profiles";
+import { ExchangeLogo } from "@/features/case/ExchangeLogo";
+import { SAMPLE_NOTICE, SCENARIO_MODE, sampleNoticeText } from "@/features/case/scenario";
 import { parseNotice } from "@/features/case/notice";
 import { daysLeftLabel } from "@/features/case/utils";
-import type { ExchangeId, ProfileField, RestrictionScope, RestrictionType, SubmissionDetails } from "@/types/case";
+import type { AppealDocumentId, ExchangeId, ProfileField, RestrictionScope, RestrictionType, SubmissionDetails } from "@/types/case";
 
 // 1단계: 어떤 제한을 받았고, 어느 거래소에 내는지
 // 왼쪽은 입력, 오른쪽은 결론(제출처 · 기한 · 준비할 자료)을 먼저 보여주고
@@ -90,6 +92,9 @@ function EvidenceRows({ rows }: { rows: EvidenceRow[] }) {
   );
 }
 
+// 소명서 안에 들어가서 따로 준비하지 않아도 되는 자료 (거래 번호는 온체인 조사, 입금 경위는 4단계 답)
+const TOOL_MADE: AppealDocumentId[] = ["txHash", "depositReason"];
+
 export function SituationScreen({ submission, onChange, onNext }: SituationScreenProps) {
   const profile = getProfile(submission.exchange);
   const group = profile ? GROUPS[profile.group] : null;
@@ -117,7 +122,8 @@ export function SituationScreen({ submission, onChange, onNext }: SituationScree
 
   // 통지를 붙여넣으면 아직 고르지 않은 칸만 바로 채웁니다. 사용자가 이미 고른 값은 덮어쓰지 않고, 되돌릴 수 있게 남겨 둡니다.
   const [autoFill, setAutoFill] = useState<{ before: Partial<SubmissionDetails>; labels: string[] } | null>(null);
-  const changeNotice = (text: string) => {
+  // receivedOn: 시연용 예시 통지를 넣을 때 통지받은 날도 같이 채웁니다 (비어 있을 때만)
+  const changeNotice = (text: string, receivedOn?: string) => {
     const found = parseNotice(text, today);
     const next: SubmissionDetails = { ...submission, requestText: text };
     const before: Partial<SubmissionDetails> = {};
@@ -142,6 +148,11 @@ export function SituationScreen({ submission, onChange, onNext }: SituationScree
       next.baseDate = found.deadline;
       labels.push(`기한 ${found.deadline}`);
     }
+    if (receivedOn && !submission.noticeDate) {
+      before.noticeDate = submission.noticeDate;
+      next.noticeDate = receivedOn;
+      labels.push(`통지받은 날 ${receivedOn}`);
+    }
     if (labels.length > 0) {
       setAutoFill({ before: { ...before, ...autoFill?.before }, labels: [...(autoFill?.labels ?? []), ...labels] });
     }
@@ -153,6 +164,23 @@ export function SituationScreen({ submission, onChange, onNext }: SituationScree
   };
   const baseDateLabel = baseDateLabels[submission.restrictionType];
   const verified = profile?.status === "verified";
+
+  // 시연 시나리오 (scenario.ts): 고른 거래소가 있으면 그 이름으로, 없으면 업비트 통지로 넣습니다
+  const insertSampleNotice = () =>
+    changeNotice(
+      sampleNoticeText(profile && profile.status !== "fallback" ? profile.name : "업비트", !profile || profile.group === "kr"),
+      SAMPLE_NOTICE.receivedOn,
+    );
+  // 통지 내용 칸 중 빈 것만 예시 통지와 같은 값으로 채웁니다. 기한은 거래소 내부 심사의 자료 제출 기한일 때만 넣습니다.
+  const fillsDeadline = submission.restrictionType === "internal" && !submission.baseDate;
+  const noticeFieldsEmpty = submission.scope === "unknown" || !submission.noticeDate || fillsDeadline;
+  const fillSampleNoticeFields = () =>
+    onChange({
+      ...submission,
+      scope: submission.scope === "unknown" ? SAMPLE_NOTICE.scope : submission.scope,
+      noticeDate: submission.noticeDate || SAMPLE_NOTICE.receivedOn,
+      baseDate: fillsDeadline ? SAMPLE_NOTICE.deadline : submission.baseDate,
+    });
 
   // 준비할 자료: 공개 자료로 확인한 거래소는 그 거래소 목록, 아니면 국내 · 해외 공통 목록
   const documents = profile ? (verified ? profile.requestedDocuments : group?.requestedDocuments ?? []) : [];
@@ -179,7 +207,10 @@ export function SituationScreen({ submission, onChange, onNext }: SituationScree
     <section className="screen-section" aria-labelledby="situation-title">
       <div className="section-heading compact-heading">
         <h1 id="situation-title">상황</h1>
-        <p>받은 제한과 거래소를 고르면 어디에, 언제까지, 무엇을 낼지 바로 정리됩니다.</p>
+        <p>
+          모르는 코인이 들어온 뒤 거래소 이용이 막혔다면, 받은 통지와 거래소를 알려 주세요. 어디에 언제까지 무엇을 낼지 정리하고, 거래소에 낼
+          소명서까지 만들어 드려요.
+        </p>
       </div>
 
       <div className="board-layout">
@@ -187,6 +218,11 @@ export function SituationScreen({ submission, onChange, onNext }: SituationScree
           <section className="board-block" aria-labelledby="paste-title">
             <h2 id="paste-title">
               <span className="board-step">1</span>받은 통지 붙여넣기 <small>선택</small>
+              {SCENARIO_MODE && !submission.requestText.trim() ? (
+                <button type="button" className="text-button board-sample" onClick={insertSampleNotice}>
+                  예시 통지 넣기
+                </button>
+              ) : null}
             </h2>
             <label className="text-field compact-field">
               <span className="visually-hidden">거래소에서 받은 문구</span>
@@ -265,6 +301,7 @@ export function SituationScreen({ submission, onChange, onNext }: SituationScree
                         ].join(" ")}
                         onClick={() => selectExchange(id)}
                       >
+                        <ExchangeLogo id={id} size={18} />
                         {item.status === "fallback" ? "그 외" : item.name}
                       </button>
                     );
@@ -277,6 +314,11 @@ export function SituationScreen({ submission, onChange, onNext }: SituationScree
           <section className="board-block" aria-labelledby="notice-title">
             <h2 id="notice-title">
               <span className="board-step">4</span>통지 내용 <small>모르면 비워 두세요</small>
+              {SCENARIO_MODE && noticeFieldsEmpty ? (
+                <button type="button" className="text-button board-sample" onClick={fillSampleNoticeFields}>
+                  예시로 채우기
+                </button>
+              ) : null}
             </h2>
             <div className="notice-row">
               <label className="select-field">
@@ -353,10 +395,16 @@ export function SituationScreen({ submission, onChange, onNext }: SituationScree
                     <>
                       <ul className="result-docs">
                         {documents.map((id) => (
-                          <li key={id}>{DOCUMENT_LABELS[id]}</li>
+                          <li key={id} className={TOOL_MADE.includes(id) ? "is-made" : undefined}>
+                            {TOOL_MADE.includes(id) ? <span aria-hidden="true">✓ </span> : null}
+                            {DOCUMENT_LABELS[id]}
+                          </li>
                         ))}
                       </ul>
-                      <small>{documentsNote}</small>
+                      <small>
+                        {documentsNote}
+                        {documents.some((id) => TOOL_MADE.includes(id)) ? " · ✓ 표시는 이 도구가 소명서에 넣어 드려요. 나머지는 직접 준비해 4단계에서 넣어요." : ""}
+                      </small>
                     </>
                   ) : profile ? (
                     <small>공개된 자료 목록이 없습니다. 통지에 적힌 자료를 따르세요.</small>

@@ -4,6 +4,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  plainFindings,
   analysisQuestions,
   analysisSummary,
   analysisUnknowns,
@@ -169,5 +170,45 @@ describe("퍼짐 그림 배치", () => {
   it("받은 곳이 내 지갑뿐이어도 그림이 깨지지 않음", () => {
     assert.deepEqual(spreadLayout(1, 1).dots.map((dot) => dot.kind), ["mine"]);
     assert.deepEqual(spreadLayout(0, 0).dots.map((dot) => dot.kind), ["mine"]);
+  });
+});
+
+describe("쉬운 말 결과 (3단계 화면)", () => {
+  it("질문 4개를 같은 순서로, 짧은 답과 설명으로 바꿈", () => {
+    const findings = plainFindings(makeAnalysis());
+    assert.deepEqual(findings.map((f) => f.id), ["prior", "spray", "after", "sanctions"]);
+    assert.deepEqual(findings.map((f) => f.answer), ["없음", "34곳", "없음", "목록에 있음"]);
+    assert.equal(findings[1].short, "보낸 곳 40곳 중 · 내 지갑 포함");
+    assert.match(findings[1].explain, /지갑 40곳에 코인을 보냈어요\. 그중 34곳이 내 지갑처럼 비슷한 금액\(0\.0009~0\.0011 ETH\)/);
+    assert.match(findings[2].extra ?? "", /^참고로, 입금 10분 뒤 다른 주소로 0\.3 ETH를 보냈어요\./);
+    assert.ok(findings[3].caution);
+    for (const f of findings) assert.ok(f.sources.length > 0, `${f.id}에 원본 링크가 있어야 함`);
+  });
+
+  it("쓰지 않는 말이 없고, 목록에 없을 때도 판정하지 않음", () => {
+    const matched = plainFindings(makeAnalysis());
+    const clear = makeAnalysis();
+    clear.sanctions = { ...clear.sanctions, senderMatched: false };
+    const notMatched = plainFindings(clear);
+    for (const f of [...matched, ...notMatched]) {
+      for (const word of BANNED) {
+        assert.ok(!`${f.label} ${f.question} ${f.answer} ${f.short} ${f.explain} ${f.extra ?? ""}`.includes(word), `${f.id}: ${word}`);
+      }
+    }
+    assert.equal(notMatched[3].answer, "목록에 없음");
+    assert.match(notMatched[3].explain, /목록에 없다는 것만으로 어떤 주소인지 말할 수는 없어요/);
+  });
+
+  it("조회가 상한에 걸리면 범위를 밝히고, 이전 거래가 있으면 건수를 씀", () => {
+    const findings = plainFindings(makeAnalysis({ priorDirectTransactions: 2 }, false));
+    assert.equal(findings[0].answer, "2건");
+    assert.match(findings[0].short, /최대 1,000건 범위$/);
+    assert.match(findings[0].explain, /^최대 1,000건까지 찾아본 범위에서 이번 입금 전에 두 지갑이 직접 주고받은 기록이 2건 있어요/);
+  });
+
+  it("입금 뒤 나간 전송이 없으면 덧붙임도 없음", () => {
+    const analysis = makeAnalysis();
+    analysis.evidence = analysis.evidence.filter((item) => item.id !== "D-first-outgoing");
+    assert.equal(plainFindings(analysis)[2].extra, null);
   });
 });

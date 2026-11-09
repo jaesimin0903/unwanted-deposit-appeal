@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { AddressText } from "@/features/case/AddressText";
 import { SCOPE } from "@/server/constants";
-import { ANALYSIS_CHECKS, analysisQuestions, analysisSummary, analysisUnknowns } from "@/features/case/analysis-view";
+import { ANALYSIS_CHECKS, plainFindings, type QuestionId } from "@/features/case/analysis-view";
 import { SourceLinks } from "@/features/case/SourceLinks";
 import { SpreadGraph } from "@/features/case/SpreadGraph";
 import { categoryLabels, formatKoreanDateTime, providerLabels, shortAddress } from "@/features/case/utils";
@@ -17,11 +17,6 @@ interface AnalysisScreenProps {
 const CHECK_COUNT = ANALYSIS_CHECKS.length;
 const REVEAL_STEP_MS = 450;
 
-// 요약 문장의 숫자(곳·건)를 굵게
-function emphasize(text: string) {
-  return text.split(/(\d[\d,]*(?:곳|건))/).map((part, index) => (index % 2 === 1 ? <b key={index}>{part}</b> : part));
-}
-
 function uniqueSources(sources: SourceRef[]) {
   const seen = new Set<string>();
   return sources.filter((source) => {
@@ -32,15 +27,35 @@ function uniqueSources(sources: SourceRef[]) {
   });
 }
 
+// 결과 칸 아이콘: 이전 거래(⇄), 퍼짐(한 곳 → 여러 곳), 돌려보냄(↩), 목록
+function FindingIcon({ id }: { id: QuestionId }) {
+  return (
+    <svg viewBox="0 0 20 20" aria-hidden="true" className="result-icon">
+      {id === "prior" ? <path d="M3 7h12l-3-3M17 13H5l3 3" /> : null}
+      {id === "spray" ? (
+        <>
+          <circle cx="4" cy="10" r="2" />
+          <path d="M6 10l9-6M6 10h9M6 10l9 6" />
+          <circle cx="16.5" cy="4" r="1.2" />
+          <circle cx="16.5" cy="10" r="1.2" />
+          <circle cx="16.5" cy="16" r="1.2" />
+        </>
+      ) : null}
+      {id === "after" ? <path d="M8 4 4 8l4 4M4 8h8a4 4 0 0 1 0 8H8" /> : null}
+      {id === "sanctions" ? <path d="M4 3h12v14H4zM7 7h6M7 10h6M7 13h3" /> : null}
+    </svg>
+  );
+}
+
 // 조사 중: 질문 4개를 함께 조회하고, 결과가 오면 하나씩 답을 붙입니다
 function AnalysisProgress({ analysis, revealed }: { analysis?: CaseAnalysis; revealed: number }) {
-  const answers = new Map(analysis ? analysisQuestions(analysis).map((question) => [question.id, question.answer]) : []);
+  const answers = new Map(analysis ? plainFindings(analysis).map((finding) => [finding.id, finding.answer]) : []);
 
   return (
     <section className="analysis-progress" aria-live="polite">
       <div className="progress-card">
-        <h1>온체인 기록 조사 중</h1>
-        <p>입금 시각을 기준으로 조회합니다.</p>
+        <h1>블록체인 기록 확인 중</h1>
+        <p>이 입금 앞뒤의 공개 기록을 찾고 있어요.</p>
         <ol className="progress-checks">
           {ANALYSIS_CHECKS.map((check, index) => {
             const done = Boolean(analysis) && index < revealed;
@@ -82,60 +97,81 @@ export function AnalysisScreen({ analysis, loading, onBack, onNext }: AnalysisSc
   }
 
   const { transfer, scope, sanctions } = analysis;
-  const questions = analysisQuestions(analysis);
-  const unknowns = analysisUnknowns(analysis);
+  const findings = plainFindings(analysis);
 
   return (
     <section className="screen-section analysis-screen" aria-labelledby="analysis-title">
       <header className="onchain-head">
         <div>
-          <h1 id="analysis-title">온체인 조사</h1>
-          <p className="onchain-lead">블록체인에 남은 기록으로 이 입금을 확인했어요. 아래 결과는 고르거나 고칠 수 없고, 소명서에 그대로 들어가요.</p>
-          <p className="onchain-meta">
-            <b>{transfer.displayValue} {transfer.asset}</b> · {formatKoreanDateTime(transfer.timestamp)} · 보낸 주소{" "}
-            <code>{shortAddress(transfer.from, 6, 4)}</code>
-          </p>
+          <h1 id="analysis-title">블록체인 기록 확인</h1>
+          <p className="onchain-lead">공개 장부(블록체인)에 남은 기록으로 이 입금을 확인했어요.</p>
         </div>
         <a className="source-button" href={transfer.explorerUrl} target="_blank" rel="noreferrer">
-          블록체인 기록 보기 ↗
+          원본 기록 ↗
         </a>
       </header>
 
-      <p className="onchain-summary">{emphasize(analysisSummary(analysis))}</p>
-
-      <div className="onchain-body">
-        <SpreadGraph analysis={analysis} />
-        <div className="question-grid">
-          {questions.map((question) => (
-            <article key={question.id} className={question.caution ? "question-card is-caution" : "question-card"}>
-              <h2>{question.question}</h2>
-              <p className="question-answer">{question.answer}</p>
-              <p className="question-detail">
-                <AddressText text={question.detail} />
-              </p>
-              <p className="question-meaning">{question.meaning}</p>
-              <div className="question-foot">
-                <span className={`category-chip is-${question.category}`}>{categoryLabels[question.category]}</span>
-                <span className="question-sources">
-                  {uniqueSources(question.sources).slice(0, 2).map((source, index) =>
-                    source.url ? (
-                      <a key={index} href={source.url} target="_blank" rel="noreferrer">{source.label} ↗</a>
-                    ) : (
-                      <span key={index}>{source.label}</span>
-                    ),
-                  )}
-                </span>
-              </div>
-            </article>
-          ))}
-        </div>
+      {/* 받은 입금 한 건: 보낸 주소 → 내 지갑 */}
+      <div className="deposit-strip" aria-label={`보낸 주소 ${shortAddress(transfer.from, 6, 4)}에서 내 지갑으로 ${transfer.displayValue} ${transfer.asset}`}>
+        <span className="strip-node">
+          <small>보낸 주소</small>
+          <code>{shortAddress(transfer.from, 6, 4)}</code>
+        </span>
+        <span className="strip-flow" aria-hidden="true">
+          <b>{transfer.displayValue} {transfer.asset}</b>
+          <i />
+          <small>{formatKoreanDateTime(transfer.timestamp)}</small>
+        </span>
+        <span className="strip-node is-mine">
+          <small>받은 곳</small>
+          <b>내 지갑</b>
+        </span>
       </div>
 
+      <ul className="result-grid">
+        {findings.map((finding) => (
+          <li key={finding.id} className={finding.caution ? "result-tile is-caution" : "result-tile"}>
+            <p className="result-label">
+              <FindingIcon id={finding.id} />
+              {finding.label}
+            </p>
+            <p className="result-answer">{finding.answer}</p>
+            <p className="result-short">{finding.short}</p>
+            {finding.extra ? <p className="result-flag">입금 뒤 다른 곳으로 보낸 기록이 있어요 · 자세히</p> : null}
+            <details className="result-more">
+              <summary>자세히</summary>
+              <p>{finding.explain}</p>
+              {finding.id === "spray" && analysis.facts.similarAmountCount > 1 ? <SpreadGraph analysis={analysis} /> : null}
+              {finding.extra ? (
+                <p className="result-extra">
+                  <AddressText text={finding.extra} />
+                </p>
+              ) : null}
+              <p className="result-sources">
+                <span className={`category-chip is-${finding.category}`}>{categoryLabels[finding.category]}</span>
+                {uniqueSources(finding.sources).slice(0, 2).map((source, sourceIndex) =>
+                  source.url ? (
+                    <a key={sourceIndex} href={source.url} target="_blank" rel="noreferrer">
+                      {source.label} ↗
+                    </a>
+                  ) : (
+                    <span key={sourceIndex}>{source.label}</span>
+                  ),
+                )}
+              </p>
+            </details>
+          </li>
+        ))}
+      </ul>
+
+      <p className="unknown-line">
+        <b>기록으로 알 수 없는 것</b>
+        <span>내 의도 · 보낸 사람과 아는 사이인지 · 받은 코인을 썼는지</span>
+        <em>→ 다음 단계에서 직접 답해요</em>
+      </p>
+
       <div className="onchain-foot">
-        <p className="unknown-strip">
-          <span className="category-chip is-unverifiable">{categoryLabels.unverifiable}</span>
-          {unknowns.map((item) => item.title).join(" · ")}
-        </p>
+        <p className="finding-note">이 결과는 고칠 수 없고, 원본 링크와 함께 소명서에 들어가요.</p>
         <button
           type="button"
           className="text-button details-toggle"
@@ -143,7 +179,7 @@ export function AnalysisScreen({ analysis, loading, onBack, onNext }: AnalysisSc
           aria-controls="analysis-details"
           onClick={() => setShowDetails((open) => !open)}
         >
-          {showDetails ? "조사 범위 접기 ▴" : "조사 범위와 전체 기록 ▾"}
+          {showDetails ? "조사 범위 접기 ▴" : "조사 범위 ▾"}
         </button>
       </div>
 

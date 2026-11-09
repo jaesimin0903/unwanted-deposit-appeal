@@ -620,6 +620,7 @@ select:focus-visible {
 .panel-heading > span {
   color: var(--muted);
   font-size: 13px;
+  white-space: nowrap;
 }
 
 .transaction-row {
@@ -996,6 +997,232 @@ select:focus-visible {
   white-space: nowrap;
 }
 
+/* 3단계: 받은 입금 한 줄 + 결과 4칸 (큰 답과 한 줄만, 설명은 "자세히") */
+.deposit-strip {
+  margin-bottom: 12px;
+  padding: 14px 18px;
+  display: grid;
+  grid-template-columns: auto minmax(120px, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.strip-node {
+  padding: 8px 12px;
+  display: grid;
+  gap: 2px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.strip-node small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.strip-node code,
+.strip-node b {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.strip-node code {
+  font-family: "SFMono-Regular", Consolas, monospace;
+}
+
+.strip-node.is-mine {
+  color: var(--action);
+  background: var(--action-soft);
+  border-color: #bfdbfe;
+}
+
+.strip-flow {
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+}
+
+.strip-flow b {
+  font-size: 18px;
+}
+
+.strip-flow i {
+  position: relative;
+  width: 100%;
+  height: 2px;
+  background: var(--action);
+}
+
+.strip-flow i::after {
+  content: "";
+  position: absolute;
+  top: -4px;
+  right: -1px;
+  border-left: 8px solid var(--action);
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+}
+
+.strip-flow small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.result-grid {
+  margin: 0 0 12px;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start; /* 한 칸의 "자세히"를 펼쳐도 옆 칸은 늘어나지 않게 */
+  gap: 10px;
+  list-style: none;
+}
+
+.result-tile {
+  padding: 16px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  word-break: keep-all;
+}
+
+.result-tile.is-caution {
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+
+.result-label {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.result-icon {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.result-answer {
+  margin: 6px 0 2px;
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+}
+
+.result-tile.is-caution .result-answer {
+  color: #b45309;
+}
+
+.result-short {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.result-flag {
+  margin: 8px 0 0;
+  display: inline-block;
+  padding: 3px 8px;
+  color: var(--ink);
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.result-more {
+  margin-top: 10px;
+}
+
+.result-more summary {
+  width: fit-content;
+  color: var(--action);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.result-more > p {
+  margin: 8px 0 0;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.result-more .spread-panel {
+  margin-top: 10px;
+}
+
+.result-more .spread-panel figcaption {
+  font-size: 13px;
+}
+
+.result-extra {
+  padding: 8px 10px;
+  background: var(--surface-subtle);
+  border-radius: 6px;
+}
+
+.result-sources {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  font-size: 13px;
+}
+
+.result-sources a {
+  color: var(--action);
+  font-weight: 600;
+}
+
+.unknown-line {
+  margin: 0;
+  padding: 10px 14px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  font-size: 14px;
+  word-break: keep-all;
+}
+
+.unknown-line span {
+  color: var(--muted);
+}
+
+.unknown-line em {
+  color: var(--action);
+  font-style: normal;
+  font-weight: 650;
+}
+
+.finding-note {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .onchain-details {
   margin-top: 12px;
   background: var(--surface);
@@ -1202,6 +1429,252 @@ select:focus-visible {
   word-break: keep-all;
 }
 
+/* 4단계 순서 표시: 입금에 대해 → 직접 설명 → 요청할 내용 → 같이 낼 파일 */
+.stmt-steps {
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 6px;
+  list-style: none;
+}
+
+.stmt-steps button {
+  width: 100%;
+  min-height: 58px;
+  padding: 8px 10px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 8px;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.stmt-steps span {
+  grid-row: span 2;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.stmt-steps b {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stmt-steps small {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stmt-steps .is-done span {
+  color: var(--action);
+  background: var(--action-soft);
+  border-color: transparent;
+}
+
+.stmt-steps .is-current button {
+  background: var(--action-soft);
+  border-color: var(--action);
+}
+
+.stmt-steps .is-current span {
+  color: #fff;
+  background: var(--action);
+  border-color: var(--action);
+}
+
+.stmt-steps button:hover {
+  border-color: var(--action);
+}
+
+/* 질문 하나씩 */
+.ask-card {
+  padding: 22px 24px 24px;
+  gap: 8px;
+  overflow: hidden;
+}
+
+/* 질문 진행 막대: 넘어갈 때마다 차오릅니다 */
+.ask-progress {
+  height: 4px;
+  overflow: hidden;
+  background: var(--neutral-soft);
+  border-radius: 999px;
+}
+
+.ask-progress i {
+  height: 100%;
+  display: block;
+  background: var(--action);
+  border-radius: inherit;
+  transition: width 320ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+/* 새 질문이 옆에서 밀려 들어옵니다 (다음: 오른쪽에서, 이전: 왼쪽에서) */
+.ask-slide {
+  display: grid;
+  gap: 8px;
+  animation: ask-in-next 300ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.ask-slide.is-prev {
+  animation-name: ask-in-prev;
+}
+
+@keyframes ask-in-next {
+  from { opacity: 0; transform: translateX(36px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes ask-in-prev {
+  from { opacity: 0; transform: translateX(-36px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* 방금 고른 답은 살짝 눌렸다가 돌아옵니다 */
+.ask-option.is-picked {
+  animation: ask-pick 260ms ease-out;
+}
+
+@keyframes ask-pick {
+  0% { transform: scale(1); }
+  35% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+/* 순서(입금에 대해 → 직접 설명 → …)를 옮기면 새 칸이 아래에서 떠오릅니다 */
+.stmt-form > .stmt-section {
+  animation: part-in 240ms ease-out both;
+}
+
+@keyframes part-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ask-slide,
+  .ask-option.is-picked,
+  .stmt-form > .stmt-section {
+    animation: none;
+  }
+
+  .ask-progress i {
+    transition: none;
+  }
+}
+
+.ask-count {
+  margin: 6px 0 0;
+  color: var(--action);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.ask-card h2 {
+  margin: 0;
+  outline: none;
+  font-size: clamp(20px, 1.7vw, 24px);
+  line-height: 1.35;
+}
+
+.ask-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.ask-options {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.ask-option {
+  min-height: 56px;
+  padding: 0 12px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  font: inherit;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* 폰에서는 누른 자리에 hover가 남아, 다음 질문의 같은 자리 버튼이 골라진 것처럼 보여서 마우스가 있을 때만 씁니다 */
+@media (hover: hover) {
+  .ask-option:hover {
+    color: var(--action);
+    border-color: var(--action);
+  }
+}
+
+.ask-option.is-selected {
+  color: #fff;
+  background: var(--action);
+  border-color: var(--action);
+}
+
+.ask-option:focus-visible,
+.stmt-steps button:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--action) 30%, transparent);
+  outline-offset: 2px;
+}
+
+.ask-why {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.stmt-date-wrap.ask-date {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  justify-items: start;
+  gap: 10px;
+}
+
+.ask-date .stmt-date {
+  height: 48px;
+  font-size: 16px;
+}
+
+/* 4단계 버튼 줄은 입력 칸 바로 아래 (폰에서 미리보기 아래까지 내려가지 않게) */
+.stmt-actions {
+  margin-top: 0;
+}
+
 .stmt-section {
   padding: 14px 18px 16px;
   display: grid;
@@ -1243,8 +1716,7 @@ select:focus-visible {
   font-size: 14px;
 }
 
-.stmt-section em,
-.file-box em {
+.stmt-section em {
   margin-left: 4px;
   color: var(--faint);
   font-size: 12px;
@@ -1394,79 +1866,6 @@ select:focus-visible {
   justify-self: start;
 }
 
-.doc-checks {
-  display: grid;
-}
-
-.doc-check {
-  padding: 10px 0;
-  display: grid;
-  grid-template-columns: 20px minmax(0, 1fr) auto;
-  align-items: start;
-  gap: 10px;
-  border-top: 1px solid var(--border);
-  cursor: pointer;
-}
-
-.doc-check input {
-  width: 16px;
-  height: 16px;
-  margin: 3px 0 0;
-  accent-color: var(--action);
-}
-
-.doc-check > span:not(.field-chip):not(.doc-chips) {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-
-.doc-check b {
-  font-size: 15px;
-  font-weight: 650;
-}
-
-.doc-check small {
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.doc-check .doc-chips {
-  align-self: center;
-}
-
-.file-box {
-  padding-top: 12px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 6px 14px;
-  border-top: 1px solid var(--border);
-}
-
-.file-box > div {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.file-box b {
-  font-size: 15px;
-}
-
-.file-box small {
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.file-box .attachment-button {
-  margin-top: 0;
-}
-
-.file-box .attachment-list {
-  grid-column: 1 / -1;
-}
-
 .stmt-preview {
   position: sticky;
   top: 0;
@@ -1476,6 +1875,21 @@ select:focus-visible {
   background: var(--surface-subtle);
   border: 1px solid var(--border);
   border-radius: var(--radius);
+}
+
+/* 미리보기가 화면보다 길어도 "이대로 소명서 만들기"가 늘 보이게, 미리보기 안에서 스크롤하고 버튼은 아래에 붙입니다 */
+.stmt-preview:has(.preview-next) {
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.preview-next {
+  position: sticky;
+  bottom: -16px;
+  width: 100%;
+  margin-bottom: -16px;
+  box-shadow: 0 -12px 12px -4px var(--surface-subtle);
 }
 
 .preview-head {
@@ -1601,70 +2015,6 @@ select:focus-visible {
   margin-right: auto;
   color: var(--muted);
   font-size: 14px;
-}
-
-.attachment-button {
-  width: fit-content;
-  padding: 6px 10px;
-  margin-top: 8px;
-  display: inline-flex;
-  color: var(--action);
-  background: var(--surface);
-  border: 1px solid var(--action);
-  border-radius: 7px;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 680;
-  transition: background 150ms ease, transform 100ms ease;
-}
-
-.attachment-button:hover { background: var(--action-soft); }
-.attachment-button:active { transform: scale(0.97); }
-
-.attachment-button input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-}
-
-.attachment-list {
-  padding: 0;
-  margin: 8px 0 0;
-  list-style: none;
-}
-
-.attachment-list li {
-  padding: 7px 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  border-top: 1px solid var(--border);
-}
-
-.attachment-list span {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.attachment-list span b {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 13px;
-}
-
-.attachment-list button {
-  padding: 0;
-  color: var(--muted);
-  background: transparent;
-  border: 0;
-  cursor: pointer;
-  font-size: 12px;
 }
 
 .select-field > span {
@@ -1829,6 +2179,11 @@ select:focus-visible {
   font-weight: 650;
 }
 
+.applicant-sample {
+  margin-left: 8px;
+  font-size: 12px;
+}
+
 .applicant-fields label {
   display: grid;
   gap: 3px;
@@ -1972,39 +2327,6 @@ select:focus-visible {
   padding-top: 8px;
   margin-top: 8px;
   border-top: 1px solid var(--border);
-}
-
-.report-attachments {
-  padding-top: 8px;
-  margin-top: 8px;
-  border-top: 1px solid var(--border);
-}
-
-.report-attachments > b {
-  display: block;
-  margin-bottom: 3px;
-  font-size: 11px;
-}
-
-.report-attachments ul {
-  padding: 0;
-  margin: 0;
-  list-style: none;
-}
-
-.report-attachments li {
-  padding: 3px 0 3px 12px;
-  color: var(--muted);
-  border: 0;
-  font-size: 10px;
-  counter-increment: none;
-}
-
-.report-attachments li::before {
-  content: "\2022";
-  top: 3px;
-  color: var(--action);
-  font-family: inherit;
 }
 
 .report-request {
@@ -2257,6 +2579,7 @@ select:focus-visible {
   .onchain-body,
   .stmt-layout { grid-template-columns: 1fr; }
   .stmt-preview { position: static; }
+  .preview-next { display: none; }
   .request-message textarea { height: 120px; }
   .evidence-list { grid-template-columns: 1fr; }
   .evidence-item:last-child { grid-column: auto; }
@@ -2289,6 +2612,45 @@ select:focus-visible {
     width: 28px;
     height: 28px;
   }
+  /* 폰에서는 지금 단계만 이름을 같이 보여 줍니다 (숫자만으로는 어디인지 알기 어려움) */
+  .step-navigation ol { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .step-navigation li.is-current { grid-column: span 2; }
+  .step-navigation .is-current button { gap: 6px; }
+  .step-navigation .is-current b {
+    display: inline;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .stmt-steps { gap: 4px; }
+  .stmt-steps button {
+    min-height: 52px;
+    padding: 6px;
+    grid-template-columns: 1fr;
+    justify-items: center;
+    row-gap: 3px;
+    text-align: center;
+  }
+  .stmt-steps span { grid-row: auto; }
+  .stmt-steps b { font-size: 11px; white-space: normal; text-align: center; }
+  .stmt-steps small { display: none; }
+  .ask-card { padding: 18px 16px 20px; }
+  .result-grid { grid-template-columns: 1fr; }
+  .result-answer { font-size: 26px; }
+  .deposit-strip { grid-template-columns: 1fr; justify-items: stretch; gap: 8px; }
+  .strip-flow { grid-template-columns: auto 1fr; justify-items: start; align-items: center; column-gap: 10px; }
+  .strip-flow i { display: none; }
+  .strip-flow b::before { content: "↓ "; color: var(--action); }
+  .ask-options { grid-template-columns: 1fr; }
+  /* 아래 버튼 줄: 안내 문장은 한 줄을 다 쓰고, 버튼 글자는 줄바꿈하지 않습니다 */
+  .screen-actions { flex-wrap: wrap; }
+  .screen-actions .stmt-remaining {
+    flex-basis: 100%;
+    margin-right: 0;
+    font-size: 13px;
+    text-align: right;
+  }
+  .screen-actions .primary-button,
+  .screen-actions .secondary-button { white-space: nowrap; }
   .workspace {
     height: auto;
     min-height: calc(100dvh - 59px);
@@ -2311,13 +2673,9 @@ select:focus-visible {
   .onchain-head { flex-wrap: wrap; }
   .question-grid { grid-template-columns: 1fr; }
   .onchain-foot { flex-wrap: wrap; }
-  .answer-row,
-  .file-box { grid-template-columns: 1fr; }
+  .answer-row { grid-template-columns: 1fr; }
   .answer-segment { display: flex; }
   .answer-segment label { flex: 1; min-width: 0; }
-  .doc-check { grid-template-columns: 20px minmax(0, 1fr); }
-  .doc-check .doc-chips { grid-column: 2; justify-self: start; justify-content: flex-start; }
-  .file-box .attachment-button { justify-self: start; }
   .report-paper { padding: 18px 16px; }
   .report-paper > header { flex-direction: column; gap: 7px; }
   .report-metadata,
@@ -2383,34 +2741,6 @@ a.source-button {
 .address-helpers small {
   color: var(--muted);
   font-size: 12px;
-}
-
-.exchange-form {
-  padding: 14px;
-  margin-bottom: 14px;
-  display: grid;
-  grid-template-columns: 150px minmax(0, 1fr) minmax(0, 1fr) auto;
-  align-items: end;
-  gap: 10px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-}
-
-.exchange-form .text-field {
-  margin-top: 0;
-}
-
-.exchange-form .text-field > span {
-  font-size: 14px;
-}
-
-.key-note {
-  grid-column: 1 / -1;
-  margin: 0;
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.5;
 }
 
 .demo-badge {
@@ -2520,13 +2850,10 @@ a.source-button {
   white-space: pre-wrap;
 }
 
-
 .is-sidebar-collapsed .demo-badge { display: none; }
 
 @media (max-width: 860px) {
   .demo-badge { display: none; }
-  .exchange-form { grid-template-columns: 1fr; }
-  .exchange-form .secondary-button { width: 100%; }
   .scope-box { grid-template-columns: 1fr; }
 }
 
@@ -2642,6 +2969,15 @@ a.source-button {
   letter-spacing: -0.02em;
 }
 
+/* 시연 시나리오의 예시 넣기 버튼 (scenario.ts) */
+.board-block h2 .board-sample {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
 .board-block h2 small {
   color: var(--faint);
   font-size: 12px;
@@ -2733,6 +3069,9 @@ a.source-button {
 .exchange-chip {
   height: 32px;
   padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   color: var(--ink);
   background: var(--surface);
   border: 1px solid var(--border-strong);
@@ -2742,6 +3081,27 @@ a.source-button {
   font-weight: 600;
   cursor: pointer;
   transition: border-color 150ms ease, background 150ms ease;
+}
+
+.exchange-chip:has(.exchange-logo) {
+  padding-left: 7px;
+}
+
+.exchange-logo {
+  flex: none;
+  display: block;
+  border-radius: 5px;
+  object-fit: cover;
+}
+
+/* 고른 칩의 파란 배경에서도 로고가 보이게 흰 바탕을 깝니다 */
+.exchange-chip.is-selected .exchange-logo {
+  background: #fff;
+  box-shadow: 0 0 0 1.5px #fff;
+}
+
+.exchange-chip.is-unverified:not(.is-selected) .exchange-logo {
+  opacity: 0.75;
 }
 
 .exchange-chip:hover {
@@ -3199,8 +3559,7 @@ a.source-button {
 }
 
 /* 본문 번호(01, 02…)는 기록 목록에만. 자료 목록에 붙으면 첫 글자를 덮습니다 */
-.report-documents li::before,
-.report-attachments li::before {
+.report-documents li::before {
   content: none;
 }
 
@@ -3258,6 +3617,15 @@ a.source-button {
     position: static;
     max-height: none;
   }
+
+  /* 한 줄로 쌓이면 "다음"을 결론 카드 바로 아래로 올립니다. 근거 약관 목록은 그 아래에서 필요할 때 봅니다. */
+  .board-next {
+    order: 1;
+  }
+
+  .board-result .evidence-panel {
+    order: 2;
+  }
 }
 
 @media (max-width: 760px) {
@@ -3282,4 +3650,734 @@ a.source-button {
   .evidence-body {
     padding-left: 10px;
   }
+}
+
+/* ── 4 · 5단계 첨부할 자료: 칸마다 파일을 넣고 그 자리에서 열어 봅니다 ── */
+.attachment-board {
+  display: grid;
+  gap: 14px;
+}
+
+.slot-group {
+  display: grid;
+}
+
+.slot-group > h3 {
+  margin: 0 0 2px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.slot-row {
+  padding: 10px 0;
+  display: grid;
+  gap: 8px;
+  border-top: 1px solid var(--border);
+  border-radius: 6px;
+  transition: background 120ms ease, box-shadow 120ms ease;
+}
+
+/* 파일을 끌고 왔을 때 놓을 칸을 보여줍니다 (줄 높이는 그대로) */
+.slot-row.is-dragging {
+  background: var(--action-soft);
+  box-shadow: inset 0 0 0 2px var(--action);
+}
+
+.slot-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.slot-title {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.slot-title b {
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.slot-title small {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.slot-row.is-skipped .slot-title b {
+  color: var(--muted);
+}
+
+.slot-empty {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+}
+
+.slot-empty > span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.slot-drop {
+  position: relative;
+  flex: 1 1 240px;
+  min-height: 44px;
+  padding: 8px 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 10px;
+  color: var(--action);
+  background: var(--surface-subtle);
+  border: 1px dashed var(--border-strong);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.slot-drop:hover,
+.slot-drop:focus-within {
+  background: var(--action-soft);
+  border-color: var(--action);
+}
+
+.slot-drop b {
+  font-weight: 700;
+}
+
+/* 시연 시나리오에서는 "파일 넣기"가 버튼입니다 (scenario.ts) */
+button.slot-drop {
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+button.slot-drop:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.slot-drop span {
+  color: var(--muted);
+}
+
+/* 터치 화면에서는 끌어 놓기가 없으므로 그 안내를 뺍니다 */
+@media (hover: none) {
+  .drop-drag {
+    display: none;
+  }
+}
+
+.slot-more {
+  position: relative;
+  width: fit-content;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.slot-drop input,
+.slot-more input,
+.file-add-tile input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.slot-more:focus-within {
+  outline: 3px solid color-mix(in srgb, var(--action) 24%, transparent);
+  outline-offset: 2px;
+}
+
+.slot-rejected {
+  margin: 0;
+  color: var(--issue);
+  font-size: 12px;
+}
+
+/* 넣은 파일: 4단계는 미리보기 카드, 5단계는 작은 그림 + 이름 */
+.file-grid,
+.file-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+}
+
+.file-grid {
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+/* 같은 칸에 파일을 더 넣는 자리. 미리보기만큼 크면 아직 안 채운 빈칸처럼 보여서 낮게 둡니다 */
+.file-add-tile {
+  position: relative;
+  width: 100%;
+  height: 56px;
+  font-size: 13px;
+  display: grid;
+  place-items: center;
+  color: var(--action);
+  background: var(--surface-subtle);
+  border: 1px dashed var(--border-strong);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.file-add-tile:hover,
+.file-add-tile:focus-within {
+  background: var(--action-soft);
+  border-color: var(--action);
+}
+
+.file-list {
+  gap: 6px;
+}
+
+.file-item {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.file-item.is-large {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 6px 4px;
+}
+
+.file-frame {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+  background: var(--neutral-soft);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.file-item.is-large .file-frame {
+  grid-column: 1 / -1;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+}
+
+/* 문서 캡처는 잘리면 확인이 안 되므로 전체가 보이게 줄입니다 */
+.file-frame img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  background: #fff;
+}
+
+/* PDF 첫 쪽: 네 배 크기로 그린 뒤 1/4로 줄여 작은 그림처럼 보이게 */
+.file-frame iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 400%;
+  height: 400%;
+  border: 0;
+  background: #fff;
+  transform: scale(0.25);
+  transform-origin: 0 0;
+  pointer-events: none;
+}
+
+.pdf-tile {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  color: var(--issue);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.file-item.is-large .pdf-tile {
+  font-size: 16px;
+}
+
+.file-open {
+  position: absolute;
+  inset: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  cursor: zoom-in;
+}
+
+.file-open:hover {
+  background: color-mix(in srgb, var(--action) 8%, transparent);
+}
+
+.file-open:focus-visible {
+  outline-offset: -3px;
+}
+
+.file-meta {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.file-meta span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.file-item.is-large .file-meta span {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.file-meta small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.file-remove {
+  font-size: 12px;
+}
+
+/* 5단계 오른쪽(좁은 칸) */
+.attachment-board.is-compact {
+  gap: 4px;
+}
+
+.is-compact .slot-row {
+  padding: 8px 0;
+  gap: 6px;
+}
+
+.is-compact .slot-head {
+  flex-direction: column;
+  gap: 4px;
+}
+
+.is-compact .slot-title b {
+  font-size: 13px;
+}
+
+.is-compact .doc-chips {
+  justify-content: flex-start;
+}
+
+.is-compact .slot-drop {
+  flex: none;
+  min-height: 32px;
+  padding: 4px 12px;
+}
+
+.submit-files {
+  margin-top: 6px;
+}
+
+.submit-files > summary {
+  padding: 8px 10px;
+  color: var(--action);
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.submit-files[open] > summary {
+  margin-bottom: 8px;
+}
+
+.result-docs li.is-made {
+  color: var(--ok);
+  background: var(--ok-soft);
+  border-color: #a7f3d0;
+}
+
+.slot-fold summary {
+  padding: 6px 0;
+  color: var(--action);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+/* 소명서 제출 자료: 넣은 파일 미리보기 (누르면 크게 보기). 자료 줄의 오른쪽에 붙입니다.
+   .report-copy li의 번호 · 글자 규칙이 안쪽 목록에 번지지 않게 여기서 다시 정합니다. */
+.report-documents .paper-files {
+  margin: 0 0 0 auto;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  list-style: none;
+}
+
+.report-copy .report-documents .paper-files li {
+  width: 96px;
+  padding: 0;
+  display: grid;
+  gap: 3px;
+  border: 0;
+  counter-increment: none;
+}
+
+.paper-file {
+  position: relative;
+  width: 96px;
+  height: 72px;
+  padding: 0;
+  display: block;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  cursor: zoom-in;
+}
+
+.paper-file:hover,
+.paper-file:focus-visible {
+  border-color: var(--action);
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--action) 20%, transparent);
+}
+
+/* 문서 캡처는 잘리면 안 되므로 전체가 보이게 줄입니다 */
+.paper-file img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+}
+
+/* PDF 첫 쪽: 네 배 크기로 그린 뒤 1/4로 줄입니다 (첨부 칸과 같은 방법) */
+.paper-file .paper-pdf {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 400%;
+  height: 400%;
+  border: 0;
+  background: #fff;
+  transform: scale(0.25);
+  transform-origin: 0 0;
+  pointer-events: none;
+}
+
+.report-copy .paper-file .pdf-tile {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  color: var(--issue);
+  background: var(--issue-soft);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.report-copy .paper-file .pdf-tile.print-only {
+  display: none;
+}
+
+.report-copy .paper-files small {
+  margin: 0;
+  display: block;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+  .report-documents .paper-files {
+    flex-basis: 100%;
+    margin-left: 0;
+    justify-content: flex-start;
+  }
+}
+
+/* 인쇄 · PDF 저장: 담당자가 내용을 알아볼 수 있게 자료 줄 아래에 두 장씩 크게 */
+@media print {
+  .report-documents .paper-files {
+    flex-basis: 100%;
+    margin: 4px 0 0;
+    justify-content: flex-start;
+  }
+
+  /* 자료 이름과 그 그림이 다른 쪽으로 갈라지지 않게 */
+  .report-documents > li {
+    break-inside: avoid;
+  }
+
+  .report-copy .report-documents .paper-files li {
+    width: calc(50% - 4px);
+    break-inside: avoid;
+  }
+
+  .paper-file,
+  .paper-file:hover,
+  .paper-file:focus-visible {
+    width: 100%;
+    height: auto;
+    border-color: #cbd5e1;
+    box-shadow: none;
+  }
+
+  .paper-file img {
+    height: auto;
+    max-height: 360px;
+  }
+
+  .paper-file .paper-pdf {
+    display: none;
+  }
+
+  .report-copy .paper-file .pdf-tile,
+  .report-copy .paper-file .pdf-tile.print-only {
+    height: 56px;
+    display: grid;
+  }
+
+  .report-copy .paper-files small {
+    font-size: 10px;
+    white-space: normal;
+  }
+}
+
+/* 파일 크게 보기 */
+.file-viewer {
+  width: min(960px, calc(100vw - 32px));
+  height: min(880px, calc(100dvh - 32px));
+  max-width: none;
+  max-height: none;
+  padding: 0;
+  color: var(--ink);
+  background: var(--surface);
+  border: 0;
+  border-radius: 10px;
+  box-shadow: 0 24px 64px rgb(15 23 42 / 0.28);
+}
+
+.file-viewer::backdrop {
+  background: rgb(15 23 42 / 0.6);
+}
+
+.viewer-panel {
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.viewer-panel > header {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.viewer-panel > header > div:first-child {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.viewer-panel > header small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.viewer-panel > header b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 15px;
+}
+
+.viewer-actions {
+  flex: none;
+  display: flex;
+  gap: 6px;
+}
+
+.viewer-actions button {
+  height: 34px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+.viewer-body {
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  overflow: auto;
+  background: var(--neutral-soft);
+}
+
+.viewer-body img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.viewer-body iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.viewer-body p {
+  padding: 24px;
+  font-size: 14px;
+}
+
+/* 오른쪽 안내가 화면보다 길어져도 끝까지 내려 볼 수 있게 */
+@media (min-width: 1101px) {
+  .submission-panel {
+    max-height: calc(100dvh - 24px);
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 760px) {
+  .viewer-panel > header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .viewer-actions button {
+    flex: 1;
+  }
+}
+
+@media print {
+  .file-viewer {
+    display: none !important;
+  }
+}
+
+/* 입금 찾기: 1단계에서 고른 거래소 계정이 연결된 것처럼 보여 줍니다 */
+.exchange-connected {
+  padding: 14px 16px;
+  margin-bottom: 14px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.exchange-logo.exchange-mark {
+  border-radius: 9px;
+}
+
+.exchange-connected-main {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.exchange-connected-main p {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.exchange-connected-main b {
+  font-size: 16px;
+}
+
+.exchange-connected-main small {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.connected-badge {
+  padding: 2px 8px 2px 18px;
+  position: relative;
+  color: var(--ok);
+  background: var(--ok-soft);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.connected-badge::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  position: absolute;
+  top: 50%;
+  left: 8px;
+  background: var(--ok);
+  border-radius: 50%;
+  transform: translateY(-50%);
+}
+
+.exchange-connected .text-button {
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+  .exchange-connected {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .exchange-connected .text-button {
+    grid-column: 2;
+    justify-self: start;
+  }
+}
+
+.exchange-unsupported {
+  padding: 16px;
+  margin-bottom: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.exchange-unsupported p {
+  margin: 0 0 12px;
+  line-height: 1.6;
+}
+
+.exchange-unsupported-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
 }
